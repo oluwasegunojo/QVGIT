@@ -246,7 +246,6 @@
         <SortByLoadOrder>0</SortByLoadOrder>
         <SortByExpression>0</SortByExpression>
         <Expression></Expression>
-        <SortByGreyness>0</SortByGreyness>
       </SortCriteria>
       <CycleGroup>-1</CycleGroup>
       <Show></Show>
@@ -271,7 +270,6 @@
         <SortByLoadOrder>0</SortByLoadOrder>
         <SortByExpression>0</SortByExpression>
         <Expression></Expression>
-        <SortByGreyness>0</SortByGreyness>
       </SortCriteria>
       <CycleGroup>-1</CycleGroup>
       <Show></Show>
@@ -1036,7 +1034,7 @@
     <ChartDimensionDataDef>
       <PseudoDef>
         <Name>State</Name>
-        <Type>PRESENT</Type>
+        <Type>NOT_PRESENT</Type>
       </PseudoDef>
       <Title></Title>
       <TotalString></TotalString>
@@ -1048,7 +1046,6 @@
         <SortByLoadOrder>0</SortByLoadOrder>
         <SortByExpression>0</SortByExpression>
         <Expression></Expression>
-        <SortByGreyness>0</SortByGreyness>
       </SortCriteria>
       <ShowAll>false</ShowAll>
       <ShowLabel>true</ShowLabel>
@@ -1350,6 +1347,7 @@
         <MidAxisLabel>true</MidAxisLabel>
         <AxisPosition>POSITION_LEFT</AxisPosition>
         <Font></Font>
+        <Index>0</Index>
         <Color>
           <Mode>COLORAREA_SOLID</Mode>
           <Luminosity>85</Luminosity>
@@ -1413,6 +1411,7 @@
         <MidAxisLabel>true</MidAxisLabel>
         <AxisPosition>POSITION_LEFT</AxisPosition>
         <Font></Font>
+        <Index>1</Index>
         <Color>
           <Mode>COLORAREA_SOLID</Mode>
           <Luminosity>85</Luminosity>
@@ -1653,6 +1652,7 @@
       <MidAxisLabel>false</MidAxisLabel>
       <AxisPosition>POSITION_LEFT</AxisPosition>
       <Font></Font>
+      <Index>-1</Index>
       <Color>
         <Mode>COLORAREA_SOLID</Mode>
         <Luminosity>85</Luminosity>
@@ -1716,6 +1716,7 @@
       <MidAxisLabel>false</MidAxisLabel>
       <AxisPosition>POSITION_LEFT</AxisPosition>
       <Font></Font>
+      <Index>-2</Index>
       <Color>
         <Mode>COLORAREA_SOLID</Mode>
         <Luminosity>85</Luminosity>
@@ -2479,8 +2480,6 @@
     <ScaleChartSizeRects></ScaleChartSizeRects>
     <FastChangeRefSizeRect></FastChangeRefSizeRect>
     <PieChartSectorOutlineColor></PieChartSectorOutlineColor>
-    <ShowTotalWithInsideValues>false</ShowTotalWithInsideValues>
-    <GridBubbleScalingMode>LINEAR_SCALING</GridBubbleScalingMode>
   </ChartProperties>
   <TableProperties>
     <VerticalLabels>false</VerticalLabels>
@@ -2495,6 +2494,7 @@
     <StyleNumber>11</StyleNumber>
     <MultiLine>0</MultiLine>
     <HeaderMultiLine>0</HeaderMultiLine>
+    <MaxNumberShown_LEGACY>-100</MaxNumberShown_LEGACY>
     <TableTotalPosition>0</TableTotalPosition>
     <UseTotalLabelForStraight>false</UseTotalLabelForStraight>
     <LabelCellVariation>
@@ -3050,7 +3050,6 @@
               <SortByLoadOrder>0</SortByLoadOrder>
               <SortByExpression>0</SortByExpression>
               <Expression></Expression>
-              <SortByGreyness>0</SortByGreyness>
             </SortCriteria>
             <CycleGroup>-1</CycleGroup>
             <Show></Show>
@@ -3455,6 +3454,7 @@
             <MidAxisLabel>true</MidAxisLabel>
             <AxisPosition>POSITION_LEFT</AxisPosition>
             <Font></Font>
+            <Index>0</Index>
             <Color>
               <Mode>COLORAREA_SOLID</Mode>
               <Luminosity>85</Luminosity>
@@ -3524,7 +3524,6 @@
               <SortByLoadOrder>0</SortByLoadOrder>
               <SortByExpression>0</SortByExpression>
               <Expression></Expression>
-              <SortByGreyness>0</SortByGreyness>
             </SortCriteria>
             <CycleGroup>-1</CycleGroup>
             <Show></Show>
@@ -3929,6 +3928,7 @@
             <MidAxisLabel>true</MidAxisLabel>
             <AxisPosition>POSITION_LEFT</AxisPosition>
             <Font></Font>
+            <Index>1</Index>
             <Color>
               <Mode>COLORAREA_SOLID</Mode>
               <Luminosity>85</Luminosity>
