@@ -1,0 +1,3496 @@
+﻿///$tab Main
+// FARS-i Load Script
+// ==================
+
+SET ThousandSep=',';
+SET DecimalSep='.';
+SET MoneyThousandSep=',';
+SET MoneyDecimalSep='.';
+SET MoneyFormat='$#,##0.00;($#,##0.00)';
+SET TimeFormat='h:mm:ss TT';
+SET DateFormat='M/D/YYYY';
+SET TimestampFormat='M/D/YYYY h:mm:ss[.fff] TT';
+SET MonthNames='Jan;Feb;Mar;Apr;May;Jun;Jul;Aug;Sep;Oct;Nov;Dec';
+SET DayNames='Mon;Tue;Wed;Thu;Fri;Sat;Sun';
+
+// This load script takes data from multiple sources and in multiple formats.
+// The underlying data isn't 'clean' and does need some manipulation and clean up.
+// The load script is split into tabs and there are explanations in each tab
+// about the processes being followed.
+
+TRACE;
+TRACE FARS-i load script;
+TRACE ##################;
+
+
+
+
+
+///$tab FARS variables
+// FARS variables
+// ==============
+
+TRACE;
+TRACE Setting FARS variables and connecting to ODBC;
+TRACE =============================================;
+
+// We have chosen an ODBC connection to illustrate its use. ODBC loads are
+// slow. If you want to (substantially) decrease the load time, use another
+// type of connection.
+ODBC CONNECT32 TO FARS;
+
+// FARS directory
+// BEGIN CUSTOMIZE
+LET vDirectory = 'C:\Users\Segun\Desktop\Aurea\QV Tutorial\';
+// END CUSTOMIZE
+
+LET vStartYear = 1975;
+LET vStopYear  = 2012;
+
+// FARS data comes from http://www.nhtsa.gov/FARS
+//
+// Note that over time, fields have been added and removed from the FARS dataset.
+// In this demonstration, we have chosen to only use fields which are available
+// over the complete period 1975 onwards. A future extension could load these
+// 'missing' fields to make the analysis more complete.
+
+// In a real production system, there might not be a direct connection between
+// QlikView and a live data source. Instead, the data might be pulled from the 
+// database into QVD files using a generator and QlikView would read the QVD
+// files. This is a demonstration application, so we have included code
+// showing how a connection to a database can be direcly made.
+///$tab Mapping
+// FARS Mappings
+// =============
+
+// This sets up some mapping tables. Note that it is possible to add more
+// mapping tables.
+// There are a couple of implementations of state tables because the 
+// definition of State is slightly different for different fields.
+
+TRACE;
+TRACE Loading the FARS mapping tables;
+TRACE ===============================;
+
+Mapping_State:
+MAPPING LOAD *
+INLINE [StateNo,	State
+		0,          Unknown
+		1,  		Alabama
+		2,  		Alaska
+		3,          American Samoa
+		4,  		Arizona
+		5,  		Arkansas
+		6,  		California
+		8,  		Colorado
+		9,  		Connecticut
+		10, 		Delaware
+		11,	 		District of Columbia
+		12,			Florida
+		13, 		Georgia
+		14,         Guam
+		15, 		Hawaii
+		16, 		Idaho
+		17, 		Illinois
+		18, 		Indiana
+		19, 		Iowa
+		20, 		Kansas
+		21, 		Kentucky
+		22, 		Louisiana
+		23, 		Maine
+		24, 		Maryland
+		25, 		Massachusetts
+		26, 		Michigan
+		27, 		Minnesota
+		28, 		Mississippi
+		29, 		Missouri
+		30, 		Montana
+		31, 		Nebraska
+		32, 		Nevada
+		33, 		New Hampshire
+		34, 		New Jersey
+		35, 		New Mexico
+		36, 		New York
+		37, 		North Carolina
+		38, 		North Dakota
+		39, 		Ohio
+		40, 		Oklahoma
+		41, 		Oregon
+		42, 		Pennsylvania
+		43, 		Puerto Rico
+		44, 		Rhode Island
+		45, 		South Carolina
+		46, 		South Dakota
+		47, 		Tennessee
+		48, 		Texas
+		49, 		Utah
+		50, 		Vermont
+		51, 		Virginia
+		52, 		Virgin Islands
+		53, 		Washington
+		54, 		West Virginia
+		55, 		Wisconsin
+		56, 		Wyoming
+		91,         Unknown
+		92,         Unknown
+		93,         Multiple
+		94,         Multiple
+		95,         Unknown
+		96,         Unknown
+		97,         Unknown
+		98,         Unknown
+		99,         Unknown
+];
+
+
+// This mapping table has driver state specific entries.
+Mapping_DriverLicenseState:
+MAPPING LOAD *
+INLINE [StateNo,	State
+		0,			No Driver (since 2011)
+		1,  		Alabama
+		2,  		Alaska
+		3,          American Samoa
+		4,  		Arizona
+		5,  		Arkansas
+		6,  		California
+		8,  		Colorado
+		9,  		Connecticut
+		10, 		Delaware
+		11,	 		District of Columbia
+		12,			Florida
+		13, 		Georgia
+		14,         Guam
+		15, 		Hawaii
+		16, 		Idaho
+		17, 		Illinois
+		18, 		Indiana
+		19, 		Iowa
+		20, 		Kansas
+		21, 		Kentucky
+		22, 		Louisiana
+		23, 		Maine
+		24, 		Maryland
+		25, 		Massachusetts
+		26, 		Michigan
+		27, 		Minnesota
+		28, 		Mississippi
+		29, 		Missouri
+		30, 		Montana
+		31, 		Nebraska
+		32, 		Nevada
+		33, 		New Hampshire
+		34, 		New Jersey
+		35, 		New Mexico
+		36, 		New York
+		37, 		North Carolina
+		38, 		North Dakota
+		39, 		Ohio
+		40, 		Oklahoma
+		41, 		Oregon
+		42, 		Pennsylvannia
+		43, 		Puerto Rico
+		44, 		Rhode Island
+		45, 		South Carolina
+		46, 		South Dakota
+		47, 		Tennessee
+		48, 		Texas
+		49, 		Utah
+		50, 		Vermont
+		51, 		Virginia
+		52, 		Virgin Islands
+		53, 		Washington
+		54, 		West Virginia
+		55, 		Wisconsin
+		56, 		Wyoming
+		93,			Indian Nation (since 2009)
+		94,			Military/US Govt (defn change)
+		95,			Canada
+		96, 		Mexico
+		97, 		Other foreign country
+		98,			Not reported (since 2010)
+		99, 		Unknown
+				
+];
+
+Mapping_DayWeek:
+MAPPING LOAD  *
+INLINE [DayofWeek,	Day
+		1,  		Sunday
+		2,  		Monday
+		3,  		Tuesday
+		4,  		Wednesday
+		5,  		Thursday
+		6,  		Friday
+		7,  		Saturday
+		9, 			Unknown
+];
+
+Mapping_Month:
+MAPPING LOAD *
+INLINE [MonthNo,	Month
+		1,  		January
+		2,  		February
+		3,  		March
+		4,  		April
+		5,  		May
+		6,  		June
+		7,  		July
+		8,			August
+		9, 			September
+		10,			October
+		11, 		November
+		12, 		December
+		99,			Unknown
+];
+
+Mapping_SpecialJurisdiction:
+MAPPING LOAD *
+INLINE [ SpJurCode, SpecJur
+		 0,			None
+		 1,			National Park Service
+		 2,			Military
+		 3,			Indian Reservation
+		 4,			College/University Campus
+		 5,			Other Federal Properties
+		 8,			Other
+		 9,			Unknown
+];
+		 
+Mapping_SpecialUse:
+MAPPING LOAD *
+INLINE [ SpUseCode, SpUse
+		 0,			No Special Use
+		 1, 		Taxi
+		 2, 		Vehicle used a school bus
+		 3,			Vehicle used as other bus
+		 4,			Military
+		 5, 		Police
+		 6,			Ambulance (since 1980)
+		 7, 		Fire truck (since 1982)
+		 8, 		Emergency services vehicle (since 2009)
+		 9,			Unknown
+		 98, 		Not reported
+		 99, 		Unknown
+];
+
+Mapping_Deformed:
+MAPPING LOAD *
+INLINE [ DefCode, Def
+		 0,		  None
+		 2, 	  Minor damage
+		 4, 	  Functional damage
+		 6, 	  Disabling damage
+		 8, 	  Not reported (since 2010)
+		 9,		  Unknown
+];
+
+Mapping_DriverDrinking:
+MAPPING LOAD *
+INLINE [ DCode, Drinking
+		 0,		No drinking
+		 1, 	Drinking
+		 9,		Unknown (to 1981)
+];
+
+Mapping_Sex:
+MAPPING LOAD *
+INLINE [ SexCde, Sex
+		 1,		 male
+		 2,      female
+		 8,      Not reported (since 2010)
+		 9,      Unknown
+];
+
+Mapping_InjurySeverity:
+Mapping LOAD *
+INLINE [ InCde, Inj
+	     0,		No injury
+		 1,		Possible injury
+		 2,		Non-incapacitating evident injury
+		 3,		Incapacitating injury
+		 4,		Fatal injury
+		 5,		Injured, severity unknown
+		 6,		Died prior to crash
+		 8,		Not reported (2010 only)
+		 9,		Unknown
+];
+
+
+Mapping_Drinking:
+MAPPING LOAD *
+INLINE [ DrCode, Dr
+		 0,		 No
+		 1,		 Yes
+		 8,		 Not reported
+		 9, 	 Unknown
+];
+
+Mapping_Lighting:
+MAPPING LOAD  *
+INLINE [Code,	    Lighting
+		1,  		Daylight
+		2,  		Dark - not lit
+		3,  		Dark - lit
+		4,  		Dawn
+		5,  		Dusk
+		6,  		Dawn or dusk
+		7,  		Other
+		8,          Not reported
+		9,          Unknown
+];
+
+
+Mapping_Weather:
+MAPPING LOAD  *
+INLINE [Code,	    Weather
+		1,  		Clear
+		2,  		Rain
+		3,  		Sleet
+		4,  		Snow
+		5,  		Fog
+		6,  		Other
+		7,  		Other
+		8,          Other
+		9,          Unknown
+	   10,          Other
+	   11,			Blowing snow
+	   98,          Not reported
+	   99,          Unknown
+];
+///$tab Accident
+// Accident data
+// =============
+SUB Accident
+
+	TRACE;
+	TRACE Loading Accident data;
+	TRACE =====================;
+	
+	SET vPrefixAccident = "acc_";
+		     
+	// Cycle through the years
+	FOR vYear = vStartYear to vStopYear
+	
+		TRACE $(vYear);
+	
+		// This is the database file name, including the directory
+		LET vFileName = '`' & vDirectory & 'FARSDBF`\`' & vPrefixAccident & vYear & '`';
+
+		AccidentData:
+		LOAD 
+		    // In this demo we are building keys using the format field & '|' & field & '|' & field.
+		    // This makes it easier to read the keys and to understand what's going on, but it is
+		    // inefficient. In practice, you would use autonumber( field & field & field) for best
+		    // performance.
+		    
+			// Create unique case number across all years
+			$(vYear) & '|' & `ST_CASE` as CaseNumber,
+			
+			// This key links FARS data to other data sources
+			$(vYear) & '|' & ApplyMap('Mapping_State',STATE) as YearState,
+			
+		    PERSONS                          as [Accident Number of people involved],
+		    COUNTY                           as [Accident County],
+		    CITY                             as [Accident City],      
+		    DAY                              as [Accident Day],
+		    ApplyMap('Mapping_Month', MONTH) as [Accident Month],
+		    
+		    // Note we do not map the unknown entry - this is so the value is null in the loaded data.
+		    // The null value makes analysis easier.
+		    if (`DAY_WEEK` < 8,  ApplyMap('Mapping_DayWeek', `DAY_WEEK`)) as [Accident Day of week],
+		    
+		    // The hour field uses the 24 hour clock. This field contains some incorrect entries
+		    // where the hour is recorded as 24. It should be recorded as 0.
+		    if (HOUR < 24, HOUR, if (HOUR = 24, 0)) as [Accident Hour],
+		    
+		    MINUTE                                           as [Accident Minute],
+		    `ROAD_FNC`                                       as [Accident Roadway functional class],
+		    ApplyMap('Mapping_SpecialJurisdiction',`SP_JUR`) as [Accident Special jurisdiction],
+		    `HARM_EV`                                        as [Accident Harmful event],
+		    `MAN_COLL`                                       as [Accident Manner of collision],
+		    `REL_ROAD`                                       as [Accident Relation to trafficway],
+		    ApplyMap('Mapping_Lighting', `LGT_COND`)         as [Accident Light condition],
+		    ApplyMap('Mapping_Weather', WEATHER)             as [Accident Weather],
+		    `SCH_BUS`                                        as [Accident School bus],
+		    `NOT_HOUR`                                       as [Accident Notification hour], 
+		    `NOT_MIN`                                        as [Accident Notification minute],
+		    `ARR_HOUR`                                       as [Accident Arrival hour],
+		    `ARR_MIN`                                        as [Accident Arrival minute],
+		    FATALS                                           as [Accident Number fatalities],
+		    `DRUNK_DR`                                       as [Accident Number drunk drivers];    
+		SQL SELECT * 
+		FROM $(vFileName);
+	
+	NEXT
+	
+	// Store the data into a QVD file. The code above could be rewritten to load from a QVD
+	// instead of a DBF via ODBC - the QVD load will be 10x or more faster.
+	STORE AccidentData into 'QVD\AccidentData.QVD' (QVD);
+
+END SUB
+///$tab Person
+// Person accident data
+// ====================
+
+SUB Person
+
+	TRACE;
+	TRACE Loading Person data;
+	TRACE ===================;
+	
+	SET vPrefixPerson = `per_`;
+	    
+	// Cycle through the years
+	FOR vYear = vStartYear to vStopYear
+	
+		TRACE $(vYear);
+	
+		// This is the database file name, including the directory
+		LET vFileName = '`' & vDirectory & 'FARSDBF`\`' & vPrefixPerson & vYear & '`';
+			
+		// Find out which fields are present
+		// ---------------------------------
+		// Unfortunately, the Person files have fields which change their name despite 
+		// containing the same data over time. For a consistent analysis, we will use
+		// a variable to load the correct field name and 'rename' the field as something
+		// that renmmains constant over time.
+		
+		// Read in the first row of data to establish which fields are present
+		Temp:
+		First 1 LOAD *;
+		SQL SELECT *
+		FROM $(vFileName);
+		
+		// Some fields change their name over time, so we need
+		// to conditionally load them and rename them. 
+		
+		// Look at every field present
+		FOR vField = 1 to NoOfFields('Temp')
+		
+			LET vFieldName = FieldName(vField,'Temp');
+			
+			// Look for fields that change their name over time. If one of these
+			// fields is found, make sure the correct name is used in the subsequent
+			// load.
+			
+			IF Match(vFieldName, 'P_SF1') then
+				SET vRF1 = '`P_SF1`';
+				SET vRF2 = '`P_SF2`';
+				SET vRF3 = '`P_SF3`';		
+			ELSEIF Match(vFieldName, 'P_CF1' ) then
+				SET vRF1 = '`P_CF1`';
+				SET vRF2 = '`P_CF2`';
+				SET vRF3 = '`P_CF3`';
+			ENDIF
+			
+			IF Match(vFieldName, 'ALC_RES' ) then
+				SET vAlcohol = '`ALC_RES`';
+			ELSEIF Match(vFieldName, 'TEST_RES' ) then
+				SET vAlcohol = '`TEST_RES`';
+			ENDIF
+		
+		NEXT
+	
+		// Get rid of the temporary table - we know which fields
+		// we are renaming
+		DROP Table Temp;
+		
+		// Read in the person data
+		// -----------------------
+		PersonData:
+		LOAD 
+			// Theses fields are needed to build the data model. See the FARS link table tab for 
+			// a proper explanation.
+			$(vYear) & '|' & `ST_CASE` as PCaseNumber,
+			if (`VEH_NO` <> 0, $(vYear) & '|' & `ST_CASE` & '|' & `VEH_NO`) as PVehicleNumber,
+			$(vYear) & '|' & `ST_CASE` & '|' & `VEH_NO` & '|' & `PER_NO`    as PersonNumber,
+			
+			// Loading fields that change their name over time - using variables to load up the
+			// correct field name.
+		    $(vAlcohol)                 as [Person Alcohol test],
+		    $(vRF1)                     as [Person Related factors1],
+		    $(vRF2)                     as [Person Related factors2],
+		    $(vRF3)                     as [Person Related factors3],
+		    
+		    // The FARS data set contains some oddities with the way age is handled. 99 is used as 
+		    // both an age and as an 'unknown' flag depending on the year. We must ensure
+		    // flags are not treated as real ages. Unknown values (field values 998, 999) are coded
+		    // in an awkward way that could distort the analysis. Here we encode unknown values as null.
+			if ($(vYear) < 2009 and AGE < 99, AGE, if ($(vYear) > 2008 and AGE < 121, AGE)) as [Person Age],
+			
+			ApplyMap('Mapping_Sex',SEX) as [Person Sex],
+			`PER_TYP`                   as [Person Type], 										
+			ApplyMap('Mapping_InjurySeverity', `INJ_SEV`) as [Person Injury severity],
+			`SEAT_POS` as [Person Seat position],
+			EJECTION   as [Person Ejection],
+			EXTRICAT   as [Person Extraction needed],
+		    ApplyMap('Mapping_Drinking', DRINKING) as [Person Alcohol involved],
+		    `DEATH_DA` as [Person Death day], 
+		    `DEATH_MO` as [Person Death month], 
+		    `DEATH_YR` as [Person Death year], 
+		    `DEATH_HR` as [Person Death hour], 
+		    `DEATH_MN` as [Person Death minute],
+		    `LAG_HRS`  as [Person Death lag hours], 
+		    `LAG_MINS` as [Person Death lag minutes],
+		    LOCATION   as [Person Non-motorist location];
+		SQL SELECT *
+		FROM $(vFileName);
+		 	
+	NEXT
+	
+	// Store the data into a QVD file. The code above could be rewritten to load from a QVD
+	// instead of a DBF via ODBC - the QVD load will be 10x or more faster.
+	STORE PersonData into 'QVD\PersonData.QVD' (QVD);
+
+END SUB
+
+///$tab Vehicle
+// Vehicle accident data
+// =====================
+
+SUB Vehicle
+
+	TRACE;
+	TRACE Loading Vehicle data;
+	TRACE ====================;
+	
+	SET vPrefixVehicle = `veh_`;
+		     
+	// Cycle through the years
+	FOR vYear = vStartYear to vStopYear
+	
+		TRACE $(vYear);
+	
+		// This is the database file name, including the directory
+		LET vFileName = '`' & vDirectory & 'FARSDBF`\`' & vPrefixVehicle & vYear & '`';
+		
+		// Read in the first row of data to establish which fields are present
+		Temp:
+		First 1 LOAD *;
+		SQL SELECT *
+		FROM $(vFileName);
+		
+		// However, some fields change their name over time, so we need
+		// to conditionally load them and rename them. 
+		
+		// Look at all fields present in the file.
+		FOR vField = 1 to NoOfFields('Temp')
+		
+			LET vFieldName = FieldName(vField,'Temp');
+	
+			// Look for fields that change their name, and if present, store the field
+			// name in a variable. 
+		
+			IF Match(vFieldName, 'DR_CF1') then
+				SET vDCF1 = '`DR_CF1`';
+				SET vDCF2 = '`DR_CF2`';		
+				SET vDCF3 = '`DR_CF3`';	
+			ELSEIF Match(vFieldName, 'DR_SF1' ) then
+				SET vDCF1 = '`DR_SF1`';
+				SET vDCF2 = '`DR_SF2`';		
+				set vDCF3 = '`DR_SF3`';
+			ENDIF
+			
+			IF Match(vFieldName, 'VEH_CF1') then
+				SET vCF1 = '`VEH_CF1`';
+				SET vCF2 = '`VEH_CF2`';		
+			ELSEIF Match(vFieldName, 'VEH_SC1' ) then
+				SET vCF1 = '`VEH_SC1`';
+				SET vCF2 = '`VEH_SC2`';
+			ENDIF
+	
+			IF Match('$(vFieldName)', 'FUELCODE' ) then
+				SET vFuel = '`FUELCODE`';
+			ELSEIF Match('$(vFieldName)', 'FLDCD_TR' ) then
+				SET vFuel = '`FLDCD_TR`';
+			ENDIF
+	
+			IF Match(vFieldName, 'OCUPANTS' ) then
+				SET vOccupants = '`OCUPANTS`';
+			ELSEIF Match(vFieldName, 'NUMOCCS' ) then
+				SET vOccupants = '`NUMOCCS`';
+			ENDIF
+			
+			IF Match(vFieldName, 'TOWAWAY' ) then
+				SET vTowedAway = '`TOWAWAY`';
+			ELSEIF Match(vFieldName, 'TOWED' ) then
+				SET vTowedAway = '`TOWED`';
+			ENDIF
+		
+		NEXT
+	
+		// Get rid of the temporary table
+		DROP Table Temp;
+		
+		// We're done with the temporary table, time to read in the real data
+		VehicleData:
+		LOAD 
+			// The case number is read in temporarily to create the link table later on
+			$(vYear) & '|' & `ST_CASE`                  as VCaseNumber,
+			
+			$(vYear) & '|' & `ST_CASE` & '|' & `VEH_NO` as VehicleNumber,
+		    $(vOccupants)                               as [Vehicle Occupants],
+		    `HIT_RUN`                                   as [Vehicle Hit & run],
+		    ApplyMap('Mapping_State',`REG_STAT`)        as [Vehicle Registered State],
+		    MAKE                                        as [Vehicle Make],
+		    MODEL                                       as [Vehicle Model],
+		    `MAK_MOD`                                   as [Vehicle Make & model],
+		    `BODY_TYP`                                  as [Vehicle Body type],
+		    
+		    // Model year used 2 year dates up to 1998 and uses values of 9999, 9998 to encode
+		    // unknowns. These values will distort the analysis, so we'll leave them as null.
+		    if (`MOD_YEAR` < 99, 1900 + `MOD_YEAR`,
+		    	if (`MOD_YEAR` > 1000 and `MOD_YEAR` < 9000, `MOD_YEAR`)) as [Vehicle Model year],
+		    
+		    // This is a calculated field not in the original data set.
+		    if ( `MOD_YEAR` < 99, $(vYear) - (1900 + `MOD_YEAR`) + 1, 
+		    	if (`MOD_YEAR` > 1000 and `MOD_YEAR` < 9000, $(vYear) - `MOD_YEAR` +1)) as [Vehicle Age],
+		    	
+		    `TOW_VEH`               as [Vehicle Was towing],
+		    `VINA_MOD`              as [Vehicle VIN model],
+		    `VIN_WGT`               as [Vehicle Weight],
+		    `WGTCD_TR`              as [Vehicle Truck weight rating],
+		    `WHLBS_LG`              as [Vehicle Long wheelbase in],
+		    `WHLBS_SH`              as [Vehicle Short wheelbase in],
+		    `SER_TR`                as [Vehicle Truck model],
+		    $(vFuel)                as [Vehicle Fuel type],
+		    `MCYCL_DS`              as [Vehicle Motorcycle engine displacement cc],
+		    ApplyMap('Mapping_SpecialUse', `SPEC_USE`) as [Vehicle Special use],
+		    
+		    // From 1975-2008, speeds over 96 mph were recorded as 97, 98 was used as not reported, and
+		    // 99 as unknown. FRom 2009 onwards, speeds greater than 151 are recorded as 997, 998 is used
+		    // for not reported, and 999 for unknown.
+		    if ($(vYear) <= 2008, 
+		    	if (`TRAV_SP` <=  96, `TRAV_SP`),
+		    	if (`TRAV_SP` <= 151, `TRAV_SP`)
+		    	)  as [Vehicle Speed],
+		    
+		    IMPACT1                 as [Vehicle Damage area1],
+		    ApplyMap('Mapping_Deformed', DEFORMED)  as [Vehicle Extent damage],
+		    $(vTowedAway)           as [Vehicle Towed away],
+		    $(vCF1)                 as [Vehicle Crash factor1],
+		    $(vCF2)                 as [Vehicle Crash factor2],
+		    `FIRE_EXP`              as [Vehicle Fire],
+		    `DR_PRES`               as [Driver Present],
+		   	ApplyMap('Mapping_DriverLicenseState',`L_STATE`) as [Driver Licensed State],
+		    `L_STATUS`              as [Driver License status],
+		    `L_RESTRI`              as [Driver License restriction compliant],
+		    `PREV_ACC`              as [Driver Number previous accidents],
+		    `PREV_SUS`              as [Driver Number suspensions],
+		    `PREV_DWI`              as [Driver Number DWI convictions],
+		    `PREV_SPD`              as [Driver Number speed convictions],
+		    `PREV_OTH`              as [Driver Number other violations & convictions],
+		    `FIRST_MO`              as [Driver Conviction month],
+		    `FIRST_YR`              as [Driver Conviction year],
+		    `LAST_MO`               as [Driver Last crash month],
+		    `LAST_YR`               as [Driver Last crash year],
+		    $(vDCF1)                as [Driver Factor1],
+		    $(vDCF2)                as [Driver Factor2],
+		    $(vDCF3)                as [Driver Factor3],
+		    DEATHS                  as [Vehicle Fatalities],
+		    ApplyMap('Mapping_DriverDrinking',`DR_DRINK`) as [Driver Drinking];	    
+		SQL SELECT *
+		FROM $(vFileName);
+		
+	NEXT
+	
+	// Store the data into a QVD file. The code above could be rewritten to load from a QVD
+	// instead of a DBF via ODBC - the QVD load will be 10x or more faster.
+	STORE VehicleData into 'QVD\VehicleData.QVD' (QVD);
+
+END SUB
+
+///$tab FARS link tables
+// Link table
+// ==========
+
+SUB FARSLinkTables
+
+	TRACE;
+	TRACE Creating FARS link tables;
+	TRACE =========================;
+	
+	TRACE;
+	TRACE Accident/Person/Vehicle link;
+	TRACE ----------------------------;
+	TRACE;
+	
+	// This link table is needed to creatre the data model.
+	// The FARS dataset has circular references with the
+	// fields ST_CASE, VEH_NO, and PER_NO repeated in several files.
+	// To remove this problem, we have implemented a mapping table
+	// with just a single link from the files. To fully populate
+	// the link table, we just need the data from the person and
+	// vehicle tables - the accident table only contains CaseNumber
+	// which is repeated in the Person table.
+	// In this implementation, we have made each person and vehicle
+	// globally unique by assigning them an identifier built from the
+	// year, ST_CASE, VEH_NO, and PER_NO values. This requires that these
+	// fields are read into the accident, person, and vehicle tables - 
+	// but it will lead to circular references. However, we do not need 
+	// all these fields once the globally unique identifiers have been built
+	// and we have constructed the link table.  We will therefore drop them 
+	// from their tables here and avoid circular references.
+	
+	TRACE Loading PersonData;
+	
+	FARS_link:
+	LOAD
+		PCaseNumber as CaseNumber,	
+		PVehicleNumber as VehicleNumber,
+		PersonNumber
+	Resident PersonData;
+	
+	TRACE Loading VehicleData;
+	
+	Join
+	LOAD
+		VCaseNumber as CaseNumber,
+		VehicleNumber
+	Resident VehicleData;
+	
+	// Clear up unnecesary data fields now we're finished with them. This prevents
+	// circular references.
+	TRACE Dropping fields;
+	
+	DROP Field PCaseNumber;
+	DROP Field VCaseNumber;
+	DROP Field PVehicleNumber;
+	
+	
+	TRACE;
+	TRACE YearState link;
+	TRACE --------------;
+	TRACE;
+	
+	// This link table is needed to link the FARS data with population, economic, and vehicle data.
+	// We need a table which has YearState, State, and Year fields. We use inline loads and a 
+	// temporary table to make the process easier. The field ID_temp is a temporary field to ensure
+	// we get a join.
+	
+	Temp:
+	LOAD * INLINE [
+	    ID_temp, Year
+	    1, 1929 
+	    1, 1930 
+	    1, 1931 
+	    1, 1932 
+	    1, 1933 
+	    1, 1934 
+	    1, 1935 
+	    1, 1936 
+	    1, 1937 
+	    1, 1938 
+	    1, 1939 
+	    1, 1940 
+	    1, 1941 
+	    1, 1942 
+	    1, 1943 
+	    1, 1944 
+	    1, 1945 
+	    1, 1946 
+	    1, 1947 
+	    1, 1948 
+	    1, 1949 
+	    1, 1950 
+	    1, 1951 
+	    1, 1952 
+	    1, 1953 
+	    1, 1954 
+	    1, 1955 
+	    1, 1956 
+	    1, 1957 
+	    1, 1958 
+	    1, 1959 
+	    1, 1960 
+	    1, 1961 
+	    1, 1962 
+	    1, 1963 
+	    1, 1964 
+	    1, 1965 
+	    1, 1966 
+	    1, 1967 
+	    1, 1968 
+	    1, 1969 
+	    1, 1970
+	    1, 1971
+	    1, 1972
+	    1, 1973
+	    1, 1974
+	    1, 1975
+	    1, 1976
+	    1, 1977
+	    1, 1978
+	    1, 1979
+	    1, 1980
+	    1, 1981
+	    1, 1982
+	    1, 1983
+	    1, 1984
+	    1, 1985
+	    1, 1986
+	    1, 1987
+	    1, 1988
+	    1, 1989
+	    1, 1990
+	    1, 1991
+	    1, 1992
+	    1, 1993
+	    1, 1994
+	    1, 1995
+	    1, 1996
+	    1, 1997
+	    1, 1998
+	    1, 1999
+	    1, 2000
+	    1, 2001
+	    1, 2002
+	    1, 2003
+	    1, 2004
+	    1, 2005
+	    1, 2006
+	    1, 2007
+	    1, 2008
+	    1, 2009
+	    1, 2010
+	    1, 2011
+	    1, 2012
+	];
+	
+	Join
+	
+	LOAD * INLINE [
+	    ID_temp, 	State, 			State abbreviation
+	    1, 			Alabama,				AL
+	    1, 			Alaska,					AK
+	    1, 			Arizona,				AZ
+	    1, 			Arkansas,				AR
+	    1, 			California,				CA
+	    1, 			Colorado,				CO
+	    1, 			Connecticut,			CT
+	    1, 			Delaware,				DE
+	    1, 			District of Columbia, 	DC
+	    1, 			Florida,				FL
+	    1, 			Georgia,				GA					
+	    1, 			Hawaii,					HI
+	    1, 			Idaho,					ID
+	    1, 			Illinois,				IL
+	    1, 			Indiana,				IN
+	    1, 			Iowa, 					IA
+	    1, 			Kansas,					KS
+	    1, 			Kentucky, 				KY
+	    1, 			Louisiana,				LA
+	    1, 			Maine,					ME
+	    1, 			Maryland, 				MD
+	    1, 			Massachusetts,			MA
+	    1, 			Michigan,				MI
+	    1, 			Minnesota,				MN
+	    1, 			Mississippi,			MS
+	    1, 			Missouri,				MO
+	    1, 			Montana,				MT
+	    1, 			Nebraska,				NE
+	    1, 			Nevada,					NV
+	    1, 			New Hampshire,			NH
+	    1, 			New Jersey,				NJ
+	    1, 			New Mexico,				NM
+	    1, 			New York,				NY
+	    1, 			North Carolina,			NC
+	    1, 			North Dakota,			ND
+	    1, 			Ohio,					OH
+	    1, 			Oklahoma,				OK
+	    1, 			Oregon,					OR
+	    1, 			Pennsylvania,			PA
+	    1, 			Rhode Island, 			RI
+	    1, 			South Carolina,			SC
+	    1, 			South Dakota,			SD
+	    1, 			Tennessee,				TN
+	    1, 			Texas,					TX
+	    1, 			Utah,					UT
+	    1, 			Vermont,				VT
+	    1, 			Virginia,				VA
+	    1, 			Washington,				WA
+	    1, 			West Virginia,			WV
+	    1, 			Wisconsin,				WI
+	    1, 			Wyoming,				WY
+	];
+	
+	
+	YearState_link:
+	LOAD
+		Year & '|' & State as YearState,
+		Year,
+		State,
+		[State abbreviation]
+	Resident Temp;
+	
+	// Get rid of the temporary table
+	DROP Table Temp;	
+	
+END SUB
+
+///$tab FARS intervals
+// Interval match tables
+// =====================
+
+// Used to display age and speed histograms.
+
+SUB FARSIntervals
+
+	TRACE;
+	TRACE Creating interval match tables;
+	TRACE ==============================;
+	
+	// Create vehicle speed range tables
+	// ---------------------------------
+	
+	VehicleSpeedRangeInterval:
+	LOAD * INLINE
+	[
+		Vehicle Speed range,	Speed Start, 	Speed Stop
+		 '< 10',				  0,		 		 9.999
+		'10-20',				 10,				19.999
+		'20-30',				 20,				29.999
+		'30-40',				 30,				39.999
+		'40-50',				 40,				49.999
+		'50-60',				 50,				59.999
+		'60-70',				 60,				69.999
+		'70-80',				 70,				79.999
+		'80-90',				 80,				89.999
+		'90-100',				 90,				99.999
+		'100-110',     			100,   			   109.999
+		'110-120',	   			110,               119.999
+		'120-130',	   			120,               129.999
+		'130-140',     			130,               139.999
+		'140-150',     			140,               149.999
+		'>150',        			150,               900
+	];
+	
+	Left Join (VehicleSpeedRangeInterval)
+	IntervalMatch([Vehicle Speed])
+	LOAD 
+		[Speed Start],
+		[Speed Stop]
+	Resident VehicleSpeedRangeInterval;
+	
+	DROP Field [Speed Start],[Speed Stop];
+	
+	Left Join (VehicleData)
+	LOAD
+		[Vehicle Speed],
+		[Vehicle Speed range]
+	Resident VehicleSpeedRangeInterval;
+	
+	DROP Table VehicleSpeedRangeInterval;	
+	
+	// Create person age range tables
+	// ------------------------------
+	
+	PersonAgeRangeInterval:
+	LOAD * INLINE
+	[
+		Person Age range,		Age Start,	Age Stop
+	    'Under 5 years', 		 0,			 4.999			
+	    '5 to 9 years', 		 5,			 9.999		
+	    '10 to 14 years', 		10,			14.999
+	    '15 to 19 years',       15,			19.999
+	    '20 to 24 years', 		20,			24.999
+	    '25 to 29 years', 		25,			29.999
+	    '30 to 34 years', 		30,			34.999
+	    '35 to 39 years', 		35,			39.999
+	    '40 to 44 years', 		40,			44.999
+	    '45 to 49 years', 		45,			49.999
+	    '50 to 54 years', 		50,			54.999
+	    '55 to 59 years', 		55,			59.999
+	    '60 to 64 years', 		60,			64.999
+	    '65 to 69 years', 		65,			69.999
+	    '70 to 74 years', 		70,			74.999
+	    '75 to 79 years', 		75,			79.999
+	    '80 to 84 years', 		80,			84.999
+	    '85 years and over',    85,		   900
+	];
+	
+	Left Join (PersonAgeRangeInterval)
+	IntervalMatch([Person Age])
+	LOAD 
+		[Age Start],
+		[Age Stop]
+	Resident PersonAgeRangeInterval;
+	
+	DROP Fields [Age Start],[Age Stop];
+	
+	Left Join (PersonData)
+	LOAD
+		[Person Age],
+		[Person Age range]
+	Resident PersonAgeRangeInterval;
+	
+	DROP Table PersonAgeRangeInterval;	
+
+END SUB
+
+///$tab Population
+// U.S. Census population data
+// ===========================
+ 
+// Sourced from www.census.gov
+// Note that Excel files used here are constructed from data files
+// extracted from the Census.gov website.
+
+SUB Population
+
+	TRACE;
+	TRACE Creating US Census table;
+	TRACE ========================;
+	
+	// BEGIN CUSTOMIZE
+	LET vCensusDirectory = vDirectory & 'Census\';
+	// END CUSTOMIZE
+	
+	// U.S. Census population data
+	// ===========================
+	
+	// 1970's
+	// ------
+	TRACE Loading 1970s data;
+	
+	LET vName = 'PE-19.xlsx';
+	LET vFileName = vCensusDirectory & vName;
+	
+	PopulationData:
+	
+	CrossTable([Population Age range], [Population], 2)
+	LOAD 
+		 num#([Year of Estimate]) & '|' & [State Name] as YearState,
+	     subfield([Race/Sex Indicator], ' ', -1) as [Population Sex],
+	     [Under 5 years], 
+	     [5 to 9 years], 
+	     [10 to 14 years], 
+	     [15 to 19 years], 
+	     [20 to 24 years], 
+	     [25 to 29 years], 
+	     [30 to 34 years], 
+	     [35 to 39 years], 
+	     [40 to 44 years], 
+	     [45 to 49 years], 
+	     [50 to 54 years], 
+	     [55 to 59 years], 
+	     [60 to 64 years], 
+	     [65 to 69 years], 
+	     [70 to 74 years], 
+	     [75 to 79 years], 
+	     [80 to 84 years], 
+	     [85 years and over]
+	FROM
+	$(vFileName)
+	(ooxml, embedded labels, header is 5 lines, table is [PE-19]);
+	
+	// 1980's
+	// ------
+	
+	TRACE Loading 1980s data;
+	
+	SET vName = `outfile1980s.csv`;
+	LET vFileName = vCensusDirectory & vName;
+	
+	CrossTable([Population Age range], [Population], 2)
+	LOAD 
+		 num#(Year) & '|' & State as YearState, 
+	     Sex as [Population Sex], 
+	     [Under 5 years], 
+	     [5 to 9 years], 
+	     [10 to 14 years], 
+	     [15 to 19 years], 
+	     [20 to 24 years], 
+	     [25 to 29 years], 
+	     [30 to 34 years], 
+	     [35 to 39 years], 
+	     [40 to 44 years], 
+	     [45 to 49 years], 
+	     [50 to 54 years], 
+	     [55 to 59 years], 
+	     [60 to 64 years], 
+	     [65 to 69 years], 
+	     [70 to 74 years], 
+	     [75 to 79 years], 
+	     [80 to 84 years], 
+	     [85 years and over]
+	FROM
+	$(vFileName)
+	(txt, codepage is 1252, embedded labels, delimiter is ',', msq);
+	
+	
+	// 1990's
+	// ------
+	
+	TRACE Loading 1990s data;
+	
+	SET vName = `outfile1990s.csv`;
+	LET vFileName = vCensusDirectory & vName;
+	
+	CrossTable([Population Age range], [Population], 2)
+	LOAD 
+		 num#(Year) & '|' & State as YearState, 
+	     Sex as [Population Sex], 
+	     [Under 5 years], 
+	     [5 to 9 years], 
+	     [10 to 14 years], 
+	     [15 to 19 years], 
+	     [20 to 24 years], 
+	     [25 to 29 years], 
+	     [30 to 34 years], 
+	     [35 to 39 years], 
+	     [40 to 44 years], 
+	     [45 to 49 years], 
+	     [50 to 54 years], 
+	     [55 to 59 years], 
+	     [60 to 64 years], 
+	     [65 to 69 years], 
+	     [70 to 74 years], 
+	     [75 to 79 years], 
+	     [80 to 84 years], 
+	     [85 years and over]
+	FROM
+	$(vFileName)
+	(txt, codepage is 1252, embedded labels, delimiter is ',', msq);
+	
+	// 2000's
+	// ------
+	
+	TRACE Loading 2000s data;
+	
+	SET vName = `outfile2000s.csv`;
+	LET vFileName = vCensusDirectory & vName;
+	
+	CrossTable([Population Age range], [Population], 2)
+	LOAD
+		 num#(Year) & '|' & State as YearState,  
+	     Sex as [Population Sex], 
+	     [Under 5 years], 
+	     [5 to 9 years], 
+	     [10 to 14 years], 
+	     [15 to 19 years], 
+	     [20 to 24 years], 
+	     [25 to 29 years], 
+	     [30 to 34 years], 
+	     [35 to 39 years], 
+	     [40 to 44 years], 
+	     [45 to 49 years], 
+	     [50 to 54 years], 
+	     [55 to 59 years], 
+	     [60 to 64 years], 
+	     [65 to 69 years], 
+	     [70 to 74 years], 
+	     [75 to 79 years], 
+	     [80 to 84 years], 
+	     [85 years and over]
+	FROM
+	$(vFileName)
+	(txt, codepage is 1252, embedded labels, delimiter is ',', msq);
+	
+	// 2011's
+	// ------
+	
+	TRACE Loading 2011 data;
+	
+	SET vName = `outfile2011s.csv`;
+	LET vFileName = vCensusDirectory & vName;
+	
+	CrossTable([Population Age range], [Population], 2)
+	LOAD 
+		 num#(Year) & '|' & State as YearState, 
+	     Sex as [Population Sex], 
+	     [Under 5 years], 
+	     [5 to 9 years], 
+	     [10 to 14 years], 
+	     [15 to 19 years], 
+	     [20 to 24 years], 
+	     [25 to 29 years], 
+	     [30 to 34 years], 
+	     [35 to 39 years], 
+	     [40 to 44 years], 
+	     [45 to 49 years], 
+	     [50 to 54 years], 
+	     [55 to 59 years], 
+	     [60 to 64 years], 
+	     [65 to 69 years], 
+	     [70 to 74 years], 
+	     [75 to 79 years], 
+	     [80 to 84 years], 
+	     [85 years and over]
+	FROM
+	$(vFileName)
+	(txt, codepage is 1252, embedded labels, delimiter is ',', msq);
+	
+	// 2012
+	// ------
+	
+	TRACE Loading 2012 data;
+	
+	SET vName = `outfile2012s.csv`;
+	LET vFileName = vCensusDirectory & vName;
+	
+	CrossTable([Population Age range], [Population], 2)
+	LOAD 
+		 num#(Year) & '|' & State as YearState, 
+	     Sex as [Population Sex], 
+	     [Under 5 years], 
+	     [5 to 9 years], 
+	     [10 to 14 years], 
+	     [15 to 19 years], 
+	     [20 to 24 years], 
+	     [25 to 29 years], 
+	     [30 to 34 years], 
+	     [35 to 39 years], 
+	     [40 to 44 years], 
+	     [45 to 49 years], 
+	     [50 to 54 years], 
+	     [55 to 59 years], 
+	     [60 to 64 years], 
+	     [65 to 69 years], 
+	     [70 to 74 years], 
+	     [75 to 79 years], 
+	     [80 to 84 years], 
+	     [85 years and over]
+	FROM
+	$(vFileName)
+	(txt, codepage is 1252, embedded labels, delimiter is ',', msq);
+	
+	// Store the Population data to file for faster loads
+	STORE PopulationData into 'QVD\PopulationData.QVD' (QVD);
+	
+END SUB
+
+///$tab GDP by State
+ // State GDP data
+ // ==============
+ 
+ // Sourced from www.bea.gov (Bureau of Economic Analysis)
+ 
+SUB GDP
+
+	TRACE;
+	TRACE Creating state GDP table;
+	TRACE ========================;
+	
+	// QlikView reads in column headings as literals. In this case,
+	// we want the values (years) to be numeric. To make the
+	// tranformation, we read the data into a temporary table,
+	// read the temporary table into the final table, and 
+	// make the numeric transformation during the load process.
+	
+	GDP_Temp:
+	CrossTable(Year, GDP)
+	LOAD 
+		 Area as State, 
+	     [1997], 
+	     [1998], 
+	     [1999], 
+	     [2000], 
+	     [2001], 
+	     [2002], 
+	     [2003], 
+	     [2004], 
+	     [2005], 
+	     [2006], 
+	     [2007], 
+	     [2008], 
+	     [2009], 
+	     [2010], 
+	     [2011], 
+	     [2012]
+	FROM
+	[http://www.bea.gov/iTable/iTableHtml.cfm?reqid=70&step=10&isuri=1&7003=200&7035=-1&7004=naics&7005=1&7006=01000,02000,04000,05000,06000,08000,09000,10000,11000,12000,13000,15000,16000,17000,18000,19000,20000,21000,22000,23000,24000,25000,26000,27000,28000,29000,30000,31000,32000,33000,34000,35000,36000,37000,38000,39000,40000,41000,42000,44000,45000,46000,47000,48000,49000,50000,51000,53000,54000,55000,56000&7010=0&7036=-1&7001=1200&7002=1&7090=70&7007=2013,2012,2011,2010,2009,2008,2007,2006,2005,2004,2003,2002,2001,2000,1999,1998,1997&7093=levels]
+	(html, codepage is 1252, embedded labels, table is @2, filters(
+	Remove(Col, Pos(Top, 1))
+	));
+	
+	// Change the years to numeric
+	GDPData:
+	NoConcatenate
+	LOAD
+		num#(Year) & '|' & State as YearState, 
+		GDP
+	Resident GDP_Temp;
+	
+	// Get rid of the temporary table
+	DROP Table GDP_Temp;
+	
+	// Save GDP to file for faster loads
+	STORE GDPData into 'QVD\GDPData.QVD' (QVD);
+
+END SUB
+
+///$tab Personal income by State
+// State personal income data
+// ==========================
+ 
+// Sourced from www.bea.gov (Bureau of Economic Analysis)
+
+SUB PersonalIncome
+
+	TRACE;
+	TRACE Creating state personal income table;
+	TRACE ====================================;
+	
+	// QlikView reads in column headings as literals. In this case,
+	// we want the values (years) to be numeric. To make the
+	// tranformation, we read the data into a temporary table,
+	// read the temporary table into the final table, and 
+	// make the numeric transformation during the load process.
+	
+	// Per capita personal income is total personal income divided by total midyear population.
+	// Geographic Note-- Estimates prior to 1950 are not available for Alaska and Hawaii.
+	// All dollar estimates are in current dollars (not adjusted for inflation).
+	
+	PI_Temp:
+	CrossTable(Year, [Personal income per capita])
+	LOAD 
+		 GeoName as State, 
+	     [1929], 
+	     [1930], 
+	     [1931], 
+	     [1932], 
+	     [1933], 
+	     [1934], 
+	     [1935], 
+	     [1936], 
+	     [1937], 
+	     [1938], 
+	     [1939], 
+	     [1940], 
+	     [1941], 
+	     [1942], 
+	     [1943], 
+	     [1944], 
+	     [1945], 
+	     [1946], 
+	     [1947], 
+	     [1948], 
+	     [1949], 
+	     [1950], 
+	     [1951], 
+	     [1952], 
+	     [1953], 
+	     [1954], 
+	     [1955], 
+	     [1956], 
+	     [1957], 
+	     [1958], 
+	     [1959], 
+	     [1960], 
+	     [1961], 
+	     [1962], 
+	     [1963], 
+	     [1964], 
+	     [1965], 
+	     [1966], 
+	     [1967], 
+	     [1968], 
+	     [1969], 
+	     [1970], 
+	     [1971], 
+	     [1972], 
+	     [1973], 
+	     [1974], 
+	     [1975], 
+	     [1976], 
+	     [1977], 
+	     [1978], 
+	     [1979], 
+	     [1980], 
+	     [1981], 
+	     [1982], 
+	     [1983], 
+	     [1984], 
+	     [1985], 
+	     [1986], 
+	     [1987], 
+	     [1988], 
+	     [1989], 
+	     [1990], 
+	     [1991], 
+	     [1992], 
+	     [1993], 
+	     [1994], 
+	     [1995], 
+	     [1996], 
+	     [1997], 
+	     [1998], 
+	     [1999], 
+	     [2000], 
+	     [2001], 
+	     [2002], 
+	     [2003], 
+	     [2004], 
+	     [2005], 
+	     [2006], 
+	     [2007], 
+	     [2008], 
+	     [2009], 
+	     [2010], 
+	     [2011], 
+	     [2012]
+	FROM
+	[http://www.bea.gov/iTable/iTableHtml.cfm?reqid=70&step=30&isuri=1&7001=421&7031=0&7040=-1&7025=0&7022=21&7023=0&7024=Non-Industry&7083=Levels&7026=01000,02000,04000,05000,06000,08000,09000,10000,11000,12000,13000,15000,16000,17000,18000,19000,20000,21000,22000,23000,24000,25000,26000,27000,28000,29000,30000,31000,32000,33000,34000,35000,36000,37000,38000,39000,40000,41000,42000,44000,45000,46000,47000,48000,49000,50000,51000,53000,54000,55000,56000&7027=-1&7028=3&7029=21&7090=70&7033=-1]
+	(html, codepage is 1252, embedded labels, table is @2);
+	
+	// Change the years to numeric
+	PersonalIncomeData:
+	NoConcatenate
+	LOAD
+		num#(Year) & '|' & State as YearState, 
+		
+		// Before 1950, data for Alaska and Hawaii wasn't collected. It's coded as (NA). We will code it as NULL
+		// to make numeric analysis easier 
+		if ([Personal income per capita] <> '(NA)', [Personal income per capita]) as [Personal income per capita]
+		
+	Resident PI_Temp;
+	
+	// Get rid of the temporary table
+	DROP Table PI_Temp;
+	
+	// Save Personal Income to file for faster loads
+	STORE PersonalIncomeData into 'QVD\PersonalIncomeData.QVD' (QVD);
+
+END SUB
+
+///$tab Vehicle registrations
+// Vehicle registration data
+// =========================
+ 
+// Sourced from http://www.fhwa.dot.gov/policyinformation/statistics.cfm
+// Federal Highway Admninistration
+
+// All of this data is sourced from the web. Unfortunately, the layout
+// and format of the data changes over time. Forthe most recent years it
+// is available on HTML pages, but further back it is only available in
+// in Excel form. The HTML page layout changes slightly over time, as does 
+// the Excel spreadsheet format. For this reason, we have to read in and 
+// process each year individually.
+
+// The web pages and Excel spreadsheets contain a number of unwanted characters
+// by the state names (references to footnotes, unwanted non-printing characters 
+// etc.). We must strip them out.
+
+SUB VehicleRegistrations
+
+	TRACE;
+	TRACE Creating vehicle registrations table;
+	TRACE ====================================;
+	TRACE;
+	
+	// 2012
+	
+	TRACE 2012;
+	
+	VehicleRegistrationsData:
+	LOAD 
+		 // Replacing unwanted characters from the web pages
+		 2012 & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState,  
+	     AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     MOTORCYCLES as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/2012/mv1.cfm]
+	(html, codepage is 1252, embedded labels, table is @1, filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	
+	// 2011
+	
+	TRACE 2011;
+	
+	VehicleRegistrations:
+	LOAD 
+		 // Replacing unwanted characters from the web pages
+		 2011 & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState,  
+	     AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     MOTORCYCLES as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/2011/mv1.cfm]
+	(html, codepage is 1252, embedded labels, table is @1, filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	
+	// 2010
+	
+	TRACE 2010;
+	
+	LOAD 
+		 2010 & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''),  
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState,  
+	     AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     (MOTORCYCLES + MOTORCYCLES1) as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES + MOTORCYCLES1) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/2010/mv1.cfm]
+	(html, codepage is 1252, embedded labels, table is @1, filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 55)),
+	Remove(Row, Pos(Top, 54)),
+	Remove(Row, Pos(Top, 2))
+	));
+	
+	
+	// 2009
+	
+	TRACE 2009;
+	
+	LOAD 
+		 2009  & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState,  
+	     AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     (MOTORCYCLES + MOTORCYCLES1) as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES + MOTORCYCLES1) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/2009/mv1.cfm]
+	(html, codepage is 1252, embedded labels, table is @5, filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 55)),
+	Remove(Row, Pos(Top, 54)),
+	Remove(Row, Pos(Top, 2))
+	));
+	
+	// 2008
+	
+	TRACE 2008;
+	
+	LOAD 
+		 2008  & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState,  
+	     AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     (MOTORCYCLES + MOTORCYCLES1) as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES + MOTORCYCLES1) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/2008/mv1.cfm]
+	(html, codepage is 1252, embedded labels, table is @5, filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 55)),
+	Remove(Row, Pos(Top, 54)),
+	Remove(Row, Pos(Top, 2))
+	));
+	
+	// 2007
+	
+	TRACE 2007;
+	
+	LOAD 
+		 2007  & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState, 
+	     AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     (MOTORCYCLES + MOTORCYCLES1) as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES + MOTORCYCLES1) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/2007/mv1.cfm]
+	(html, codepage is 1252, embedded labels, table is @5, filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 55)),
+	Remove(Row, Pos(Top, 54)),
+	Remove(Row, Pos(Top, 2))
+	));
+	
+	// 2006
+	
+	TRACE 2006;
+	
+	LOAD 
+	     2006  & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState,  
+	     AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     (MOTORCYCLES + MOTORCYCLES1) as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES + MOTORCYCLES1) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/policy/ohim/hs06/htm/mv1.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 2005
+	
+	TRACE 2005;
+	
+	LOAD 
+	     2005  & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''),  
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState,     
+		 AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     (MOTORCYCLES + MOTORCYCLES1) as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES + MOTORCYCLES1) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/policy/ohim/hs05/htm/mv1.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 2004
+	
+	TRACE 2004;
+	
+	LOAD 
+	     2004  & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState, 
+	     AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     (MOTORCYCLES + MOTORCYCLES1) as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES + MOTORCYCLES1) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/policy/ohim/hs04/htm/mv1.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	
+	// 2003
+	
+	TRACE 2003;
+	
+	LOAD 
+	     2003  & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState,   
+	     AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     (MOTORCYCLES + MOTORCYCLES1) as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES + MOTORCYCLES1) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/policy/ohim/hs03/htm/mv1.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 2002
+	
+	TRACE 2002;
+	
+	LOAD 
+	     2002 & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState,   
+	     AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     (MOTORCYCLES + MOTORCYCLES1) as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES + MOTORCYCLES1) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/policy/ohim/hs02/mv1.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Row, Pos(Top, 57)),
+	Remove(Row, Pos(Top, 56)),
+	Remove(Row, Pos(Top, 55)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 8)),
+	Remove(Col, Pos(Top, 7)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 2))
+	));
+	
+	
+	// 2001
+	
+	TRACE 2001;
+	
+	LOAD 
+	     2001  & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState,  
+	     AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     (MOTORCYCLES + MOTORCYCLES1) as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES + MOTORCYCLES1) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/hs01/mv1.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 2000
+	
+	TRACE 2000;
+	
+	LOAD 
+	     2000  & '|' &
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE,
+		 		'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia') as YearState,  
+	     AUTOMOBILES as [Registered Automobiles], 
+	     BUSES as [Registered Buses], 
+	     TRUCKS as [Registered Trucks], 
+	     (MOTORCYCLES + MOTORCYCLES1) as [Registered Motorcycles],
+	     (AUTOMOBILES + BUSES + TRUCKS + MOTORCYCLES + MOTORCYCLES1) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/hs00/mv1.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 1999
+	
+	TRACE 1999;
+	
+	LOAD 
+	     1999  & '|' &
+	     Trim(
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(@1,
+				'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia')) as YearState, 
+	     @2 as [Registered Automobiles], 
+	     @3 as [Registered Buses], 
+	     @4 as [Registered Trucks], 
+		 (@5 + @6) as [Registered Motorcycles],
+	     (@2 + @3 + @4 + @5 + @6) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/hs99/excel/mv1.xls]
+	(biff, no labels, table is [A$], filters(
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 8)),
+	Remove(Col, Pos(Top, 7)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 9)),
+	Remove(Row, Pos(Top, 8)),
+	Remove(Row, Pos(Top, 7)),
+	Remove(Row, Pos(Top, 6)),
+	Remove(Row, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 4)),
+	Remove(Row, Pos(Top, 3)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 61)),
+	Remove(Row, Pos(Top, 60)),
+	Remove(Row, Pos(Top, 59)),
+	Remove(Row, Pos(Top, 58)),
+	Remove(Row, Pos(Top, 57)),
+	Remove(Row, Pos(Top, 56)),
+	Remove(Row, Pos(Top, 55)),
+	Remove(Row, Pos(Top, 54)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 52))
+	));
+	
+	// 1998
+	
+	TRACE 1998;
+	
+	LOAD 
+		 1998  & '|' &
+		 Trim(
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(@1,
+				'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia')) as YearState,   
+	     @2 as [Registered Automobiles], 
+	     @3 as [Registered Buses], 
+	     @4 as [Registered Trucks], 
+		 (@5 + @6) as [Registered Motorcycles],
+	     (@2 + @3 + @4 + @5 + @6) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/1998/xls/mv1.xls]
+	(biff, no labels, table is [A$], filters(
+	Remove(Row, Pos(Top, 71)),
+	Remove(Row, Pos(Top, 70)),
+	Remove(Row, Pos(Top, 69)),
+	Remove(Row, Pos(Top, 68)),
+	Remove(Row, Pos(Top, 67)),
+	Remove(Row, Pos(Top, 66)),
+	Remove(Row, Pos(Top, 65)),
+	Remove(Row, Pos(Top, 64)),
+	Remove(Row, Pos(Top, 63)),
+	Remove(Row, Pos(Top, 62)),
+	Remove(Row, Pos(Top, 10)),
+	Remove(Row, Pos(Top, 9)),
+	Remove(Row, Pos(Top, 8)),
+	Remove(Row, Pos(Top, 7)),
+	Remove(Row, Pos(Top, 6)),
+	Remove(Row, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 4)),
+	Remove(Row, Pos(Top, 3)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Col, Pos(Top, 8)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 8)),
+	Remove(Col, Pos(Top, 7)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Col, Pos(Top, 5))
+	));
+	
+	// 1997
+	
+	TRACE 1997;
+	
+	LOAD 
+		 1997  & '|' &
+		 Trim(
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(@1,
+				'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia')) as YearState,   
+	     @2 as [Registered Automobiles], 
+	     @3 as [Registered Buses], 
+	     @4 as [Registered Trucks], 
+		 (@5 + @6) as [Registered Motorcycles],
+	     (@2 + @3 + @4 + @5 + @6) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/hs97/xls/mv1_1997.xls]
+	(biff, no labels, table is [A$], filters(
+	Remove(Row, Pos(Top, 69)),
+	Remove(Row, Pos(Top, 68)),
+	Remove(Row, Pos(Top, 67)),
+	Remove(Row, Pos(Top, 66)),
+	Remove(Row, Pos(Top, 65)),
+	Remove(Row, Pos(Top, 64)),
+	Remove(Row, Pos(Top, 63)),
+	Remove(Row, Pos(Top, 62)),
+	Remove(Col, Pos(Top, 8)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 8)),
+	Remove(Col, Pos(Top, 7)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 10)),
+	Remove(Row, Pos(Top, 9)),
+	Remove(Row, Pos(Top, 8)),
+	Remove(Row, Pos(Top, 7)),
+	Remove(Row, Pos(Top, 6)),
+	Remove(Row, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 4)),
+	Remove(Row, Pos(Top, 3)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 1))
+	));
+	
+	// 1996
+	
+	TRACE 1996;
+	
+	LOAD 
+		 1996  & '|' &
+		 Trim(
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(@1,
+				'Ã‚Â ', ''),  
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia')) as YearState, 
+	     @2 as [Registered Automobiles], 
+	     @3 as [Registered Buses], 
+	     @4 as [Registered Trucks], 
+		 (@5 + @6) as [Registered Motorcycles],
+	     (@2 + @3 + @4 + @5 + @6) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/1996/MV1r.xls]
+	(biff, no labels, table is [A$], filters(
+	Remove(Row, Pos(Top, 68)),
+	Remove(Row, Pos(Top, 67)),
+	Remove(Row, Pos(Top, 66)),
+	Remove(Row, Pos(Top, 65)),
+	Remove(Row, Pos(Top, 64)),
+	Remove(Row, Pos(Top, 63)),
+	Remove(Row, Pos(Top, 62)),
+	Remove(Row, Pos(Top, 61)),
+	Remove(Col, Pos(Top, 8)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 8)),
+	Remove(Col, Pos(Top, 7)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 9)),
+	Remove(Row, Pos(Top, 8)),
+	Remove(Row, Pos(Top, 7)),
+	Remove(Row, Pos(Top, 6)),
+	Remove(Row, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 4)),
+	Remove(Row, Pos(Top, 3)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 1))
+	));
+	
+	// 1995
+	
+	TRACE 1995;
+	
+	LOAD 
+	     1995  & '|' &
+	     Trim(
+		 Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(@1,
+				'Ã‚Â ', ''),  
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				'Dist. of Col.', 'District of Columbia')) as YearState, 
+	     round(@2) as [Registered Automobiles], 
+	     @3 as [Registered Buses], 
+	     @4 as [Registered Trucks], 
+		 (@5 + @6) as [Registered Motorcycles],
+	     (@2 + @3 + @4 + @5 + @6) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/1995/mv1.xls]
+	(biff, no labels, table is [MV1$], filters(
+	Remove(Row, Pos(Top, 68)),
+	Remove(Row, Pos(Top, 67)),
+	Remove(Row, Pos(Top, 66)),
+	Remove(Row, Pos(Top, 65)),
+	Remove(Row, Pos(Top, 64)),
+	Remove(Row, Pos(Top, 63)),
+	Remove(Row, Pos(Top, 62)),
+	Remove(Col, Pos(Top, 8)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 14)),
+	Remove(Col, Pos(Top, 13)),
+	Remove(Col, Pos(Top, 12)),
+	Remove(Col, Pos(Top, 11)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Row, Pos(Top, 10)),
+	Remove(Row, Pos(Top, 9)),
+	Remove(Row, Pos(Top, 8)),
+	Remove(Row, Pos(Top, 7)),
+	Remove(Row, Pos(Top, 6)),
+	Remove(Row, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 4)),
+	Remove(Row, Pos(Top, 3)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 1))
+	));
+	
+	// 1994
+	
+	TRACE 1994;
+	
+	LOAD 
+	     1994  & '|' &
+	     // The 1994 data contains some nasty embedded non-printing characters (143 and 144)
+	     Trim(
+		 Replace(
+		 	PurgeChar(
+		 	PurgeChar(
+		 	Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(@1,
+				'Ã‚Â ', ''), 
+				' (1)', ''),
+				' (2)', ''),
+				' (3)', ''),
+				' (4)', ''),
+				' 4/' , ''),
+				' 5/' , ''),
+				' 6/' , ''),
+				' u6/', ''),
+				' u6',  ''),
+				Chr(144)),
+				Chr(143)),
+				'Dist. of Col.', 'District of Columbia')) as YearState, 
+	     round(@2) as [Registered Automobiles], 
+	     @3 as [Registered Buses], 
+	     @4 as [Registered Trucks], 
+	     (@5 + @6) as [Registered Motorcycles],
+	     (@2 + @3 + @4 + @5 + @6) as [Registered Vehicles Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/1994/section2/mv1.xls]
+	(biff, no labels, table is [mv1$], filters(
+	Remove(Row, Pos(Top, 68)),
+	Remove(Row, Pos(Top, 67)),
+	Remove(Row, Pos(Top, 66)),
+	Remove(Row, Pos(Top, 65)),
+	Remove(Row, Pos(Top, 64)),
+	Remove(Row, Pos(Top, 63)),
+	Remove(Row, Pos(Top, 62)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 2)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 3)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Col, Pos(Top, 4)),
+	Remove(Col, Pos(Top, 10)),
+	Remove(Col, Pos(Top, 9)),
+	Remove(Col, Pos(Top, 8)),
+	Remove(Col, Pos(Top, 7)),
+	Remove(Col, Pos(Top, 6)),
+	Remove(Col, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 10)),
+	Remove(Row, Pos(Top, 9)),
+	Remove(Row, Pos(Top, 8)),
+	Remove(Row, Pos(Top, 7)),
+	Remove(Row, Pos(Top, 6)),
+	Remove(Row, Pos(Top, 5)),
+	Remove(Row, Pos(Top, 4)),
+	Remove(Row, Pos(Top, 3)),
+	Remove(Row, Pos(Top, 2)),
+	Remove(Row, Pos(Top, 1))
+	));
+	
+	// Save VehicleRegistrations to file for faster loads
+	STORE VehicleRegistrationsData into 'QVD\VehicleRegistrationsData.QVD' (QVD);
+
+END SUB
+
+///$tab Vehicle miles traveled
+// Vehicle miles traveled data
+// ===========================
+ 
+// Sourced from http://www.fhwa.dot.gov/policyinformation/statistics.cfm
+// Federal Highway Admninistration
+
+// All of this data is sourced from the web. Unfortunately, the layout
+// and format of the data changes over time. For the most recent years it
+// is available on HTML pages, but further back it is only available in
+// in Excel form. The HTML page layout changes slightly over time, as does 
+// the Excel spreadsheet format. For this reason, we have to read in and 
+// process each year individually.
+
+// The web pages and Excel spreadsheets contain a number of unwanted characters
+// by the state names (references to footnotes, unwanted non-printing characters 
+// etc.). We must strip them out.
+
+// Miles traveled are measured in millions of miles
+
+
+SUB VehicleMilesTraveled
+
+	TRACE;
+	TRACE Creating vehicle miles traveled table;
+	TRACE =====================================;
+	TRACE;
+	
+	// 2012
+	
+	TRACE 2012;
+	
+	VehicleMilesTraveledData:
+	
+	LOAD 
+		 2012 & '|' &
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 	
+	     INTERSTATE                       as [VMT Rural Interstate], 
+	     [OTHERFREEWAYS ANDEXPRESSWAYS]   as [VMT Rural Other freeways and expressways], 
+	     OTHERPRINCIPALARTERIAL           as [VMT Rural Other principal arterial], 
+	     MINORARTERIAL                    as [VMT Rural Minor arterial], 
+	     MAJORCOLLECTOR                   as [VMT Rural Major collector], 
+	     MINORCOLLECTOR                   as [VMT Rural Minor collector], 
+	     LOCAL                            as [VMT Rural Local], 
+	     TOTAL                            as [VMT Rural Total], 
+	     INTERSTATE1                      as [VMT Urban Interstate],
+	     [OTHERFREEWAYS ANDEXPRESSWAYS1]  as [VMT Urban Other freeways and expressways], 
+	     OTHERPRINCIPALARTERIAL1          as [VMT Urban Other principal arterial], 
+	     MINORARTERIAL1                   as [VMT Urban Minor arterial], 
+	     MAJORCOLLECTOR1                  as [VMT Urban Major collector], 
+	     MINORCOLLECTOR1				  as [VMT Urban Minor collector], 
+	     LOCAL1                           as [VMT Urban Local], 
+	     TOTAL1                           as [VMT Urban Total], 
+	     TOTAL2                           as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/2012/vm2.cfm]
+	(html, codepage is 1252, embedded labels, table is @1, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 2011
+	
+	TRACE 2011;
+	
+	VehicleMilesTraveledData:
+	
+	LOAD 
+		 2011 & '|' &
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 	
+	     INTERSTATE                       as [VMT Rural Interstate], 
+	     [OTHERFREEWAYS ANDEXPRESSWAYS]   as [VMT Rural Other freeways and expressways], 
+	     OTHERPRINCIPALARTERIAL           as [VMT Rural Other principal arterial], 
+	     MINORARTERIAL                    as [VMT Rural Minor arterial], 
+	     MAJORCOLLECTOR                   as [VMT Rural Major collector], 
+	     MINORCOLLECTOR                   as [VMT Rural Minor collector], 
+	     LOCAL                            as [VMT Rural Local], 
+	     TOTAL                            as [VMT Rural Total], 
+	     INTERSTATE1                      as [VMT Urban Interstate],
+	     [OTHERFREEWAYS ANDEXPRESSWAYS1]  as [VMT Urban Other freeways and expressways], 
+	     OTHERPRINCIPALARTERIAL1          as [VMT Urban Other principal arterial], 
+	     MINORARTERIAL1                   as [VMT Urban Minor arterial], 
+	     MAJORCOLLECTOR1                  as [VMT Urban Major collector], 
+	     MINORCOLLECTOR1				  as [VMT Urban Minor collector], 
+	     LOCAL1                           as [VMT Urban Local], 
+	     TOTAL1                           as [VMT Urban Total], 
+	     TOTAL2                           as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/2011/vm2.cfm]
+	(html, codepage is 1252, embedded labels, table is @1, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	
+	// 2010
+	
+	TRACE 2010;
+	
+	Concatenate
+	LOAD 
+	
+		 2010 & '|' &
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+		 INTERSTATE                       as [VMT Rural Interstate], 
+	     [OTHERFREEWAYS ANDEXPRESSWAYS]   as [VMT Rural Other freeways and expressways], 
+	     OTHERPRINCIPALARTERIAL           as [VMT Rural Other principal arterial], 
+	     MINORARTERIAL                    as [VMT Rural Minor arterial], 
+	     MAJORCOLLECTOR                   as [VMT Rural Major collector], 
+	     MINORCOLLECTOR                   as [VMT Rural Minor collector], 
+	     LOCAL                            as [VMT Rural Local], 
+	     TOTAL                            as [VMT Rural Total], 
+	     INTERSTATE1                      as [VMT Urban Interstate],
+	     [OTHERFREEWAYS ANDEXPRESSWAYS1]  as [VMT Urban Other freeways and expressways], 
+	     OTHERPRINCIPALARTERIAL1          as [VMT Urban Other principal arterial], 
+	     MINORARTERIAL1                   as [VMT Urban Minor arterial], 
+	     MAJORCOLLECTOR1                  as [VMT Urban Major collector], 
+	     MINORCOLLECTOR1				  as [VMT Urban Minor collector], 
+	     LOCAL1                           as [VMT Urban Local], 
+	     TOTAL1                           as [VMT Urban Total], 
+	     TOTAL2                           as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/2010/vm2.cfm]
+	(html, codepage is 1252, embedded labels, table is @1, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	
+	// 2009
+	
+	TRACE 2009;
+	 
+	Concatenate
+	LOAD 
+	
+		 2009 & '|' &
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+		 INTERSTATE                         as [VMT Rural Interstate], 
+	     [OTHER FREEWAYS AND EXPRESSWAYS]   as [VMT Rural Other freeways and expressways], 
+	     [OTHER PRINCIPAL ARTERIAL]         as [VMT Rural Other principal arterial], 
+	     [MINOR ARTERIAL]                   as [VMT Rural Minor arterial], 
+	     [MAJOR COLLECTOR]                  as [VMT Rural Major collector], 
+	     [MINOR COLLECTOR]                  as [VMT Rural Minor collector], 
+	     LOCAL                              as [VMT Rural Local], 
+	     TOTAL                              as [VMT Rural Total], 
+	     INTERSTATE1                        as [VMT Urban Interstate],
+	     [OTHER FREEWAYS AND EXPRESSWAYS1]  as [VMT Urban Other freeways and expressways], 
+	     [OTHER PRINCIPAL ARTERIAL1]        as [VMT Urban Other principal arterial], 
+	     [MINOR ARTERIAL1]                  as [VMT Urban Minor arterial], 
+	     [MAJOR COLLECTOR1]                 as [VMT Urban Major collector], 
+	     [MINOR COLLECTOR1]				    as [VMT Urban Minor collector], 
+	     LOCAL1                             as [VMT Urban Local], 
+	     TOTAL1                             as [VMT Urban Total], 
+	     TOTAL2                             as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/2009/vm2.cfm]
+	(html, codepage is 1252, embedded labels, table is @5, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 2008
+	
+	TRACE 2008;
+	
+	Concatenate 
+	LOAD 
+	
+		 2008 & '|' & 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+	     INTERSTATE                         as [VMT Rural Interstate], 
+	     [OTHER PRINCIPAL ARTERIAL]         as [VMT Rural Other principal arterial], 
+	     [MINOR ARTERIAL]                   as [VMT Rural Minor arterial], 
+	     [MAJOR COLLECTOR]                  as [VMT Rural Major collector], 
+	     [MINOR COLLECTOR]                  as [VMT Rural Minor collector], 
+	     LOCAL                              as [VMT Rural Local], 
+	     TOTAL                              as [VMT Rural Total], 
+	     INTERSTATE1                        as [VMT Urban Interstate],
+	     [OTHER FREEWAYS AND EXPRESSWAYS]   as [VMT Urban Other freeways and expressways], 
+	     [OTHER PRINCIPAL ARTERIAL1]        as [VMT Urban Other principal arterial], 
+	     [MINOR ARTERIAL1]                  as [VMT Urban Minor arterial], 
+	     COLLECTOR                          as [VMT Urban Collector], 
+	     LOCAL1                             as [VMT Urban Local], 
+	     TOTAL1                             as [VMT Urban Total], 
+	     TOTAL2                             as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/2008/vm2.cfm]
+	(html, codepage is 1252, embedded labels, table is @5, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 2007
+	
+	TRACE 2007;
+	
+	Concatenate 
+	LOAD 
+	
+		 2007 & '|' &      
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState,     
+		 
+		 INTERSTATE                         as [VMT Rural Interstate], 
+	     [OTHER PRINCIPAL ARTERIAL]         as [VMT Rural Other principal arterial], 
+	     [MINOR ARTERIAL]                   as [VMT Rural Minor arterial], 
+	     [MAJOR COLLECTOR]                  as [VMT Rural Major collector], 
+	     [MINOR COLLECTOR]                  as [VMT Rural Minor collector], 
+	     LOCAL                              as [VMT Rural Local], 
+	     TOTAL                              as [VMT Rural Total], 
+	     INTERSTATE1                        as [VMT Urban Interstate],
+	     [OTHER FREEWAYS AND EXPRESSWAYS]   as [VMT Urban Other freeways and expressways], 
+	     [OTHER PRINCIPAL ARTERIAL1]        as [VMT Urban Other principal arterial], 
+	     [MINOR ARTERIAL1]                  as [VMT Urban Minor arterial], 
+	     COLLECTOR                          as [VMT Urban Collector], 
+	     LOCAL1                             as [VMT Urban Local], 
+	     TOTAL1                             as [VMT Urban Total], 
+	     TOTAL2                             as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/policyinformation/statistics/2007/vm2.cfm]
+	(html, codepage is 1252, embedded labels, table is @5, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	//  2006
+	
+	TRACE 2006;
+	
+	Concatenate
+	LOAD
+	 	 
+		 2006 & '|' & 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+		 INTERSTATE      as [VMT Rural Interstate], 
+	     PRINCIPAL       as [VMT Rural Other principal arterial], 
+	     MINOR           as [VMT Rural Minor arterial], 
+	     MAJOR           as [VMT Rural Major collector], 
+	     MINOR1          as [VMT Rural Minor collector], 
+	     LOCAL           as [VMT Rural Local], 
+	     TOTAL           as [VMT Rural Total], 
+	     INTERSTATE1     as [VMT Urban Interstate], 
+	     [FREEWAYS  AND] as [VMT Urban Other freeways and expressways], 
+	     PRINCIPAL1      as [VMT Urban Other principal arterial], 
+	     MINOR2          as [VMT Urban Minor arterial], 
+	     COLLECTOR       as [VMT Urban Collector], 
+	     LOCAL1          as [VMT Urban Local], 
+	     TOTAL1          as [VMT Urban Total], 
+	     TOTAL2          as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/policy/ohim/hs06/xls/vm2.xls]
+	(biff, embedded labels, table is [A$], filters(
+	Remove(Row, Pos(Top, 59)),
+	Remove(Row, Pos(Top, 59)),
+	Remove(Row, Pos(Top, 59)),
+	Remove(Row, Pos(Top, 59)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 2))
+	));
+	
+	// 2005
+	
+	TRACE 2005;
+	
+	Concatenate
+	LOAD 
+		 
+		 2005 & '|' & 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+		 INTERSTATE      as [VMT Rural Interstate], 
+	     PRINCIPAL       as [VMT Rural Other principal arterial], 
+	     MINOR           as [VMT Rural Minor arterial], 
+	     MAJOR           as [VMT Rural Major collector], 
+	     MINOR1          as [VMT Rural Minor collector], 
+	     LOCAL           as [VMT Rural Local], 
+	     TOTAL           as [VMT Rural Total], 
+	     INTERSTATE1     as [VMT Urban Interstate], 
+	     [FREEWAYS  AND] as [VMT Urban Other freeways and expressways], 
+	     PRINCIPAL1      as [VMT Urban Other principal arterial], 
+	     MINOR2          as [VMT Urban Minor arterial], 
+	     COLLECTOR       as [VMT Urban Collector], 
+	     LOCAL1          as [VMT Urban Local], 
+	     TOTAL1          as [VMT Urban Total], 
+	     TOTAL2          as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/policy/ohim/hs05/xls/vm2.xls]
+	(biff, embedded labels, table is [A$], filters(
+	Remove(Row, Pos(Top, 62)),
+	Remove(Row, Pos(Top, 61)),
+	Remove(Row, Pos(Top, 60)),
+	Remove(Row, Pos(Top, 59)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 2))
+	));
+	
+	
+	// 2004
+	
+	TRACE 2004;
+	
+	Concatenate
+	LOAD 
+		 
+		 2004 & '|' & 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+	
+	     INTERSTATE                         as [VMT Rural Interstate], 
+	     [OTHER PRINCIPAL ARTERIAL]         as [VMT Rural Other principal arterial], 
+	     [MINOR ARTERIAL]                   as [VMT Rural Minor arterial], 
+	     [MAJOR COLLECTOR]                  as [VMT Rural Major collector], 
+	     [MINOR COLLECTOR]                  as [VMT Rural Minor collector], 
+	     LOCAL                              as [VMT Rural Local], 
+	     TOTAL                              as [VMT Rural Total], 
+	     INTERSTATE1                        as [VMT Urban Interstate], 
+	     [OTHER FREEWAYS AND EXPRESSWAYS]   as [VMT Urban Other freeways and expressways], 
+	     [OTHER PRINCIPAL ARTERIAL1]        as [VMT Urban Other principal arterial], 
+	     [MINOR ARTERIAL1]					as [VMT Urban Minor arterial], 
+	     COLLECTOR							as [VMT Urban Collector], 
+	     LOCAL1								as [VMT Urban Local], 
+	     TOTAL1								as [VMT Urban Total], 
+	     TOTAL2								as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/policy/ohim/hs04/htm/vm2.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 2003
+	
+	TRACE 2003;
+	
+	Concatenate
+	LOAD 
+		 
+		 2003 & '|' &  
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+	
+	     INTERSTATE                         as [VMT Rural Interstate], 
+	     [OTHER PRINCIPAL ARTERIAL]         as [VMT Rural Other principal arterial], 
+	     [MINOR ARTERIAL]                   as [VMT Rural Minor arterial], 
+	     [MAJOR COLLECTOR]                  as [VMT Rural Major collector], 
+	     [MINOR COLLECTOR]                  as [VMT Rural Minor collector], 
+	     LOCAL                              as [VMT Rural Local], 
+	     TOTAL                              as [VMT Rural Total], 
+	     INTERSTATE1                        as [VMT Urban Interstate], 
+	     [OTHER FREEWAYS AND EXPRESSWAYS]   as [VMT Urban Other freeways and expressways], 
+	     [OTHER PRINCIPAL ARTERIAL1]        as [VMT Urban Other principal arterial], 
+	     [MINOR ARTERIAL1]					as [VMT Urban Minor arterial], 
+	     COLLECTOR							as [VMT Urban Collector], 
+	     LOCAL1								as [VMT Urban Local], 
+	     TOTAL1								as [VMT Urban Total], 
+	     TOTAL2								as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/policy/ohim/hs03/htm/vm2.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 2002
+	
+	TRACE 2002;
+	
+	Concatenate
+	LOAD 
+	
+		 2002 & '|' & 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+	     INTERSTATE                         as [VMT Rural Interstate], 
+	     [OTHER PRINCIPAL ARTERIAL]         as [VMT Rural Other principal arterial], 
+	     [MINOR ARTERIAL]                   as [VMT Rural Minor arterial], 
+	     [MAJOR COLLECTOR]                  as [VMT Rural Major collector], 
+	     [MINOR COLLECTOR]                  as [VMT Rural Minor collector], 
+	     LOCAL                              as [VMT Rural Local], 
+	     TOTAL                              as [VMT Rural Total], 
+	     INTERSTATE1                        as [VMT Urban Interstate], 
+	     [OTHER FREEWAYS AND EXPRESSWAYS]   as [VMT Urban Other freeways and expressways], 
+	     [OTHER PRINCIPAL ARTERIAL1]        as [VMT Urban Other principal arterial], 
+	     [MINOR ARTERIAL1]					as [VMT Urban Minor arterial], 
+	     COLLECTOR							as [VMT Urban Collector], 
+	     LOCAL1								as [VMT Urban Local], 
+	     TOTAL1								as [VMT Urban Total], 
+	     TOTAL2								as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/policy/ohim/hs02/vm2.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 2001
+	
+	TRACE 2001;
+	
+	Concatenate
+	LOAD 
+		 2001 & '|' & 	 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+		 INTERSTATE                         as [VMT Rural Interstate], 
+	     [OTHER PRINCIPAL ARTERIAL]         as [VMT Rural Other principal arterial], 
+	     [MINOR ARTERIAL]                   as [VMT Rural Minor arterial], 
+	     [MAJOR COLLECTOR]                  as [VMT Rural Major collector], 
+	     [MINOR COLLECTOR]                  as [VMT Rural Minor collector], 
+	     LOCAL                              as [VMT Rural Local], 
+	     TOTAL                              as [VMT Rural Total], 
+	     INTERSTATE1                        as [VMT Urban Interstate], 
+	     [OTHER FREEWAYS AND EXPRESSWAYS]   as [VMT Urban Other freeways and expressways], 
+	     [OTHER PRINCIPAL ARTERIAL1]        as [VMT Urban Other principal arterial], 
+	     [MINOR ARTERIAL1]					as [VMT Urban Minor arterial], 
+	     COLLECTOR							as [VMT Urban Collector], 
+	     LOCAL1								as [VMT Urban Local], 
+	     TOTAL1								as [VMT Urban Total], 
+	     TOTAL2								as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/hs01/vm2.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 2000
+	
+	TRACE 2000;
+	
+	Concatenate
+	LOAD 
+	
+		 2000 & '|' & 	 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+	     INTERSTATE                         as [VMT Rural Interstate], 
+	     [OTHER PRINCIPAL ARTERIAL]         as [VMT Rural Other principal arterial], 
+	     [MINOR ARTERIAL]                   as [VMT Rural Minor arterial], 
+	     [MAJOR COLLECTOR]                  as [VMT Rural Major collector], 
+	     [MINOR COLLECTOR]                  as [VMT Rural Minor collector], 
+	     LOCAL                              as [VMT Rural Local], 
+	     TOTAL                              as [VMT Rural Total], 
+	     INTERSTATE1                        as [VMT Urban Interstate], 
+	     [OTHER FREEWAYS AND EXPRESSWAYS]   as [VMT Urban Other freeways and expressways], 
+	     [OTHER PRINCIPAL ARTERIAL1]        as [VMT Urban Other principal arterial], 
+	     [MINOR ARTERIAL1]					as [VMT Urban Minor arterial], 
+	     COLLECTOR							as [VMT Urban Collector], 
+	     LOCAL1								as [VMT Urban Local], 
+	     TOTAL1								as [VMT Urban Total], 
+	     TOTAL2								as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/hs00/vm2.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 1999
+	
+	TRACE 1999;
+	
+	Concatenate
+	LOAD 
+	
+		 1999 & '|' & 	 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+	     INTERSTATE                         as [VMT Rural Interstate], 
+	     [OTHER PRINCIPAL ARTERIAL]         as [VMT Rural Other principal arterial], 
+	     [MINOR ARTERIAL]                   as [VMT Rural Minor arterial], 
+	     [MAJOR COLLECTOR]                  as [VMT Rural Major collector], 
+	     [MINOR COLLECTOR]                  as [VMT Rural Minor collector], 
+	     LOCAL                              as [VMT Rural Local], 
+	     TOTAL                              as [VMT Rural Total], 
+	     INTERSTATE1                        as [VMT Urban Interstate], 
+	     [OTHER FREEWAYS AND EXPRESSWAYS]   as [VMT Urban Other freeways and expressways], 
+	     [OTHER PRINCIPAL ARTERIAL1]        as [VMT Urban Other principal arterial], 
+	     [MINOR ARTERIAL1]					as [VMT Urban Minor arterial], 
+	     COLLECTOR							as [VMT Urban Collector], 
+	     LOCAL1								as [VMT Urban Local], 
+	     TOTAL1								as [VMT Urban Total], 
+	     TOTAL2								as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/hs99/vm2r.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 1998
+	
+	TRACE 1998;
+	
+	Concatenate
+	LOAD 
+		
+		 1998 & '|' & 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+	     INTERSTATE                         as [VMT Rural Interstate], 
+	     [OTHER PRINCIPAL ARTERIAL]         as [VMT Rural Other principal arterial], 
+	     [MINOR ARTERIAL]                   as [VMT Rural Minor arterial], 
+	     [MAJOR COLLECTOR]                  as [VMT Rural Major collector], 
+	     [MINOR COLLECTOR]                  as [VMT Rural Minor collector], 
+	     LOCAL                              as [VMT Rural Local], 
+	     TOTAL                              as [VMT Rural Total], 
+	     INTERSTATE1                        as [VMT Urban Interstate], 
+	     [OTHER FREEWAYS AND EXPRESSWAYS]   as [VMT Urban Other freeways and expressways], 
+	     [OTHER PRINCIPAL ARTERIAL1]        as [VMT Urban Other principal arterial], 
+	     [MINOR ARTERIAL1]					as [VMT Urban Minor arterial], 
+	     COLLECTOR							as [VMT Urban Collector], 
+	     LOCAL1								as [VMT Urban Local], 
+	     TOTAL1								as [VMT Urban Total], 
+	     TOTAL2								as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/hs98/vm2.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 1997
+	
+	TRACE 1997;
+	
+	Concatenate
+	LOAD 
+	
+		 1997 & '|' & 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+	     INTERSTATE                         as [VMT Rural Interstate], 
+	     [OTHER PRINCIPAL ARTERIAL]         as [VMT Rural Other principal arterial], 
+	     [MINOR ARTERIAL]                   as [VMT Rural Minor arterial], 
+	     [MAJOR COLLECTOR]                  as [VMT Rural Major collector], 
+	     [MINOR COLLECTOR]                  as [VMT Rural Minor collector], 
+	     LOCAL                              as [VMT Rural Local], 
+	     TOTAL                              as [VMT Rural Total], 
+	     INTERSTATE1                        as [VMT Urban Interstate], 
+	     [OTHER FREEWAYS AND EXPRESSWAYS]   as [VMT Urban Other freeways and expressways], 
+	     [OTHER PRINCIPAL ARTERIAL1]        as [VMT Urban Other principal arterial], 
+	     [MINOR ARTERIAL1]					as [VMT Urban Minor arterial], 
+	     COLLECTOR							as [VMT Urban Collector], 
+	     LOCAL1								as [VMT Urban Local], 
+	     TOTAL1								as [VMT Urban Total], 
+	     TOTAL2								as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/hs97/vm2.htm]
+	(html, codepage is 1252, embedded labels, table is @3, filters(
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53)),
+	Remove(Row, Pos(Top, 53))
+	));
+	
+	// 1996
+	
+	TRACE 1996;
+	
+	Concatenate
+	LOAD 
+	
+		 1996 & '|' & 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(STATE, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+	     INTERSTATE					as [VMT Rural Interstate], 
+	     PRINCIPAL				    as [VMT Rural Other principal arterial], 
+	     MINOR                      as [VMT Rural Minor arterial], 
+	     MAJOR                      as [VMT Rural Major collector], 
+	     MINOR1                     as [VMT Rural Minor collector], 
+	     LOCAL                      as [VMT Rural Local], 
+	     TOTAL                      as [VMT Rural Total], 
+	     INTERSTATE1                as [VMT Urban Interstate], 
+	     [FREEWAYS  AND]            as [VMT Urban Other freeways and expressways], 
+	     PRINCIPAL1                 as [VMT Urban Other principal arterial], 
+	     MINOR2                     as [VMT Urban Minor arterial], 
+	     COLLECTOR                  as [VMT Urban Collector], 
+	     LOCAL1                     as [VMT Urban Local], 
+	     TOTAL1                     as [VMT Urban Total], 
+	     TOTAL2                     as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/1996/vm2r.xls]
+	(biff, embedded labels, table is [A$], filters(
+	Remove(Row, Pos(Top, 59)),
+	Remove(Row, Pos(Top, 59)),
+	Remove(Row, Pos(Top, 59)),
+	Remove(Row, Pos(Top, 59)),
+	Remove(Row, Pos(Top, 59)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 2))
+	));
+	
+	// 1995
+	
+	TRACE 1995;
+	
+	Concatenate
+	LOAD 
+	
+		 1995 & '|' & 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(F1, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState,  
+		 
+	     INTERSTATE       as [VMT Rural Interstate], 
+	     PRINCIPAL        as [VMT Rural Other principal arterial], 
+	     MINOR            as [VMT Rural Minor arterial], 
+	     MAJOR            as [VMT Rural Major collector], 
+	     MINOR1           as [VMT Rural Minor collector], 
+	     LOCAL            as [VMT Rural Local], 
+	     TOTAL            as [VMT Rural Total], 
+	     INTERSTATE1      as [VMT Urban Interstate], 
+	     [FREEWAYS  AND]  as [VMT Urban Other freeways and expressways], 
+	     PRINCIPAL1       as [VMT Urban Other principal arterial], 
+	     MINOR2           as [VMT Urban Minor arterial], 
+	     COLLECTOR        as [VMT Urban Collector], 
+	     LOCAL1           as [VMT Urban Local], 
+	     TOTAL1           as [VMT Urban Total], 
+	     F16              as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/1995/vm2.xls]
+	(biff, embedded labels, table is [VM2$], filters(
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Row, Pos(Top, 66)),
+	Remove(Row, Pos(Top, 65)),
+	Remove(Row, Pos(Top, 64)),
+	Remove(Row, Pos(Top, 63)),
+	Remove(Row, Pos(Top, 62)),
+	Remove(Row, Pos(Top, 61)),
+	Remove(Row, Pos(Top, 60)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 2))
+	));
+	
+	// 1994
+	
+	TRACE  1994;
+	
+	Concatenate
+	LOAD 
+	
+		 1994 & '|' & 
+		 Trim(Replace(Replace(Replace(Replace(Replace(Replace(Replace(Replace(F1, 
+				 	'2/',                   ''),
+				 	'3/',                   ''),
+				 	'4/',                   ''),
+				 	'5/',                   ''),
+				 	'6/',                   ''),
+				 	'Dist. of Col.',        'District of Columbia'),
+				 	'Dist. of Columbia',    'District of Columbia'),
+				 	'  ', ' '))
+		 as YearState, 
+		 
+	     INTERSTATE       as [VMT Rural Interstate], 
+	     PRINCIPAL        as [VMT Rural Other principal arterial], 
+	     MINOR            as [VMT Rural Minor arterial], 
+	     MAJOR            as [VMT Rural Major collector], 
+	     MINOR1           as [VMT Rural Minor collector], 
+	     LOCAL            as [VMT Rural Local], 
+	     TOTAL            as [VMT Rural Total], 
+	     INTERSTATE1      as [VMT Urban Interstate], 
+	     [FREEWAYS  AND]  as [VMT Urban Other freeways and expressways], 
+	     PRINCIPAL1       as [VMT Urban Other principal arterial], 
+	     MINOR2           as [VMT Urban Minor arterial], 
+	     COLLECTOR        as [VMT Urban Collector], 
+	     LOCAL1           as [VMT Urban Local], 
+	     TOTAL1           as [VMT Urban Total], 
+	     F16              as [VMT Total]
+	FROM
+	[http://www.fhwa.dot.gov/ohim/1994/section5/vm-2.xls]
+	(biff, embedded labels, table is [A$], filters(
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Col, Pos(Top, 17)),
+	Remove(Row, Pos(Top, 67)),
+	Remove(Row, Pos(Top, 66)),
+	Remove(Row, Pos(Top, 65)),
+	Remove(Row, Pos(Top, 64)),
+	Remove(Row, Pos(Top, 63)),
+	Remove(Row, Pos(Top, 62)),
+	Remove(Row, Pos(Top, 61)),
+	Remove(Row, Pos(Top, 60)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 1)),
+	Remove(Row, Pos(Top, 2))
+	));
+	
+	// Save VehicleMilesTraveled to file for faster loads
+	STORE VehicleMilesTraveledData into 'QVD\VehicleMilesTraveledData.QVD' (QVD);
+
+END SUB
+
+///$tab Closeout
+// Closing comments
+// ================
+
+SUB Closeout 
+	TRACE;
+	TRACE Script finished - all files loaded;
+	TRACE ==================================;
+	TRACE;
+	
+	TRACE Table load data:;
+	
+	LET   vOutString =  'AccidentData         : ' & Num(NoOfRows('AccidentData'), '###,###,###');
+	TRACE $(vOutString);
+	LET   vOutString =  'PersonData           : ' & Num(NoOfRows('PersonData'), '###,###,###');
+	TRACE $(vOutString);
+	LET   vOutString =  'VehicleData          : ' & Num(NoOfRows('VehicleData'), '###,###,###');
+	TRACE $(vOutString);
+	LET   vOutString =  'FARS_link            : ' & Num(NoOfRows('FARS_link'), '###,###,###');
+	TRACE $(vOutString);
+	LET   vOutString =  'YearState_link       : ' & Num(NoOfRows('YearState_link'), '###,###,###');
+	TRACE $(vOutString);
+	LET   vOutString =  'Population           : ' & Num(NoOfRows('PopulationData'), '###,###,###');
+	TRACE $(vOutString);
+	LET   vOutString =  'GDP                  : ' & Num(NoOfRows('GDPData'), '###,###,###');
+	TRACE $(vOutString);
+	LET   vOutString =  'PersonalIncome       : ' & Num(NoOfRows('PersonalIncomeData'), '###,###,###');
+	TRACE $(vOutString);
+	LET   vOutString =  'VehicleRegistrations : ' & Num(NoOfRows('VehicleRegistrationsData'), '###,###,###');
+	TRACE $(vOutString);
+	LET   vOutString =  'VehicleMilesTraveled : ' & Num(NoOfRows('VehicleMilesTraveledData'), '###,###,###');
+	TRACE $(vOutString);
+	
+	LET vOutString = Num(
+						NoOfRows('AccidentData')             + NoOfRows('PersonData')           + 
+						NoOfRows('VehicleData')              + NoOfRows('FARS_link')            + 
+						NoOfRows('YearState_link')           + NoOfRows('PopulationData')           +
+					 	NoOfRows('GDPData')                  + NoOfRows('PersonalIncomeData')       + 
+					 	NoOfRows('VehicleRegistrationsData') + NoOfRows('VehicleMilesTraveledData'), '###,###,###')
+					 	& ' rows in all tables.';
+	TRACE $(vOutString);
+	
+END SUB
+
+///$tab Main
+
+
+If isNull(qvdCreateTime('QVD\AccidentData.QVD')) then
+	Call Accident;
+ELSE
+	TRACE;
+	TRACE Loading Accident from QVD;
+	TRACE =========================;
+	
+	[AccidentData]:
+	LOAD
+		*
+	From 'QVD\AccidentData.QVD' (qvd);
+End if;
+
+
+If isNull(qvdCreateTime(vDirectory & 'QVD\PersonData.QVD')) then
+	Call Person;
+ELSE
+	TRACE;
+	TRACE Loading Person from QVD;
+	TRACE =======================;
+	
+	[PersonData]:
+	LOAD
+		*
+	From 'QVD\PersonData.QVD' (qvd);
+End if;
+
+
+If isNull(qvdCreateTime(vDirectory & 'QVD\VehicleData.QVD')) then
+	Call Vehicle;
+ELSE
+	TRACE;
+	TRACE Loading Vehicle from QVD;
+	TRACE ========================;
+	
+	[VehicleData]:
+	LOAD
+		*
+	From 'QVD\VehicleData.QVD' (qvd);
+End if;
+
+
+Call FARSLinkTables;
+
+Call FARSIntervals;
+
+
+If isNull(qvdCreateTime(vDirectory & 'QVD\PopulationData.QVD')) then
+	Call Population;
+ELSE
+	TRACE;
+	TRACE Loading Population from QVD;
+	TRACE ==========================;
+	
+	[PopulationData]:
+	LOAD
+		*
+	From 'QVD\PopulationData.QVD' (qvd);
+End if;
+
+If isNull(qvdCreateTime(vDirectory & 'QVD\GDPData.QVD')) then
+	Call GDP;
+ELSE
+	TRACE;
+	TRACE Loading GDP from QVD;
+	TRACE ====================;
+	
+	[GDPData]:
+	LOAD
+		*
+	From 'QVD\GDPData.QVD' (qvd);
+End if;
+
+If isNull(qvdCreateTime(vDirectory & 'QVD\PersonalIncomeData.QVD')) then
+	Call PersonalIncome;
+ELSE
+	TRACE;
+	TRACE Loading PersonalIncome from QVD;
+	TRACE ===============================;
+	
+	[PersonalIncomeData]:
+	LOAD
+		*
+	From 'QVD\PersonalIncomeData.QVD' (qvd);
+End if;
+
+
+If isNull(qvdCreateTime(vDirectory & 'QVD\VehicleRegistrationsData.QVD')) then
+	Call VehicleRegistrations;
+ELSE
+	TRACE;
+	TRACE Loading Vehicle Registrations from QVD;
+	TRACE ======================================;
+	
+	[VehicleRegistrationsData]:
+	LOAD
+		*
+	From 'QVD\VehicleRegistrationsData.QVD' (qvd);
+End if; 
+
+
+If isNull(qvdCreateTime(vDirectory & 'QVD\VehicleMilesTraveledData.QVD')) then
+	Call VehicleMilesTraveled;
+ELSE
+	TRACE;
+	TRACE Loading Vehicle Miles Traveled from QVD;
+	TRACE ======================================;
+	
+	[VehicleMilesTraveledData]:
+	LOAD
+		*
+	From 'QVD\VehicleMilesTraveledData.QVD' (qvd);
+End if;
+
+Call Closeout;
