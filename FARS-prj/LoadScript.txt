@@ -41,7 +41,7 @@ ODBC CONNECT32 TO FARS;
 
 // FARS directory
 // BEGIN CUSTOMIZE
-LET vDirectory = 'C:\Users\Segun\Desktop\Aurea\QV Tutorial\';
+LET vDirectory = 'C:\QV Tutorial\';
 // END CUSTOMIZE
 
 LET vStartYear = 1975;

@@ -1,4 +1,4 @@
-﻿<!-- Last project change: 2016-11-07 14:16:31 (2016-11-07 13:16:31) -->
+﻿<!-- Last project change: 2016-11-07 16:06:25 (2016-11-07 15:06:25) -->
 <PrjQlikViewProject>
   <GLOBAL>
     <AllPropertiesFileName>AllProperties.xml</AllPropertiesFileName>
@@ -75,7 +75,7 @@
     </PrjSheetProperties>
     <PrjSheetProperties>
       <SheetId>Document\SH_DASH</SheetId>
-      <IsActive>true</IsActive>
+      <IsActive>false</IsActive>
       <ChildObjects>
         <PrjFrameParentDef>
           <ObjectId>Document\LA10</ObjectId>
@@ -2622,7 +2622,7 @@
     </PrjSheetProperties>
     <PrjSheetProperties>
       <SheetId>Document\SH10</SheetId>
-      <IsActive>false</IsActive>
+      <IsActive>true</IsActive>
       <ChildObjects>
         <PrjFrameParentDef>
           <ObjectId>Document\TX106</ObjectId>
