@@ -2622,7 +2622,7 @@
     </PrjSheetProperties>
     <PrjSheetProperties>
       <SheetId>Document\SH10</SheetId>
-      <IsActive>false</IsActive>
+      <IsActive>true</IsActive>
       <ChildObjects>
         <PrjFrameParentDef>
           <ObjectId>Document\TX106</ObjectId>
