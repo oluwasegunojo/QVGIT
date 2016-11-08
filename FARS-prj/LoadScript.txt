@@ -3379,7 +3379,6 @@ END SUB
 ///$tab Main
 
 
-If isNull(qvdCreateTime('QVD\AccidentData.QVD')) then
 	Call Accident;
 ELSE
 	TRACE;
