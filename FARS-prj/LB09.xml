@@ -259,7 +259,7 @@
   </Layout>
   <Def>
     <Name>Vehicle Registered State</Name>
-    <Type>PRESENT</Type>
+    <Type>NOT_PRESENT</Type>
   </Def>
   <Title>
     <v>Registered state</v>
@@ -361,7 +361,6 @@
     <SortByLoadOrder>0</SortByLoadOrder>
     <SortByExpression>0</SortByExpression>
     <Expression></Expression>
-    <SortByGreyness>0</SortByGreyness>
   </SortCriteria>
   <NumberPresentation></NumberPresentation>
   <ExpandedNodes></ExpandedNodes>
