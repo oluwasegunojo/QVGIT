@@ -426,7 +426,7 @@ SUB Accident
 	
 	// Store the data into a QVD file. The code above could be rewritten to load from a QVD
 	// instead of a DBF via ODBC - the QVD load will be 10x or more faster.
-	STORE AccidentData into vDirectory & 'QVD\AccidentData.QVD' (QVD);
+	STORE AccidentData into 'QVD\AccidentData.QVD' (QVD);
 
 END SUB
 ///$tab Person
@@ -541,7 +541,7 @@ SUB Person
 	
 	// Store the data into a QVD file. The code above could be rewritten to load from a QVD
 	// instead of a DBF via ODBC - the QVD load will be 10x or more faster.
-	STORE PersonData into vDirectory & 'QVD\PersonData.QVD' (QVD);
+	STORE PersonData into 'QVD\PersonData.QVD' (QVD);
 
 END SUB
 
@@ -697,7 +697,7 @@ SUB Vehicle
 	
 	// Store the data into a QVD file. The code above could be rewritten to load from a QVD
 	// instead of a DBF via ODBC - the QVD load will be 10x or more faster.
-	STORE VehicleData into vDirectory & 'QVD\VehicleData.QVD' (QVD);
+	STORE VehicleData into 'QVD\VehicleData.QVD' (QVD);
 
 END SUB
 
@@ -1257,7 +1257,7 @@ SUB Population
 	(txt, codepage is 1252, embedded labels, delimiter is ',', msq);
 	
 	// Store the Population data to file for faster loads
-	STORE PopulationData into vDirectory & 'QVD\PopulationData.QVD' (QVD);
+	STORE PopulationData into 'QVD\PopulationData.QVD' (QVD);
 	
 END SUB
 
@@ -1317,7 +1317,7 @@ SUB GDP
 	DROP Table GDP_Temp;
 	
 	// Save GDP to file for faster loads
-	STORE GDPData into vDirectory & 'QVD\GDPData.QVD' (QVD);
+	STORE GDPData into 'QVD\GDPData.QVD' (QVD);
 
 END SUB
 
@@ -1451,7 +1451,7 @@ SUB PersonalIncome
 	DROP Table PI_Temp;
 	
 	// Save Personal Income to file for faster loads
-	STORE PersonalIncomeData into vDirectory & 'QVD\PersonalIncomeData.QVD' (QVD);
+	STORE PersonalIncomeData into 'QVD\PersonalIncomeData.QVD' (QVD);
 
 END SUB
 
@@ -2396,7 +2396,7 @@ SUB VehicleRegistrations
 	));
 	
 	// Save VehicleRegistrations to file for faster loads
-	STORE VehicleRegistrationsData into vDirectory & 'QVD\VehicleRegistrationsData.QVD' (QVD);
+	STORE VehicleRegistrationsData into 'QVD\VehicleRegistrationsData.QVD' (QVD);
 
 END SUB
 
@@ -3328,7 +3328,7 @@ SUB VehicleMilesTraveled
 	));
 	
 	// Save VehicleMilesTraveled to file for faster loads
-	STORE VehicleMilesTraveledData into vDirectory & 'QVD\VehicleMilesTraveledData.QVD' (QVD);
+	STORE VehicleMilesTraveledData into 'QVD\VehicleMilesTraveledData.QVD' (QVD);
 
 END SUB
 
