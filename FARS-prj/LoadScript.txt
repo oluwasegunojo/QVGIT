@@ -3389,7 +3389,7 @@ ELSE
 	[AccidentData]:
 	LOAD
 		*
-	From 'QVD\AccidentData.QVD' (qvd);
+	From vDirectory & 'QVD\AccidentData.QVD' (qvd);
 End if;
 
 
@@ -3403,7 +3403,7 @@ ELSE
 	[PersonData]:
 	LOAD
 		*
-	From 'QVD\PersonData.QVD' (qvd);
+	From vDirectory & 'QVD\PersonData.QVD' (qvd);
 End if;
 
 
@@ -3417,7 +3417,7 @@ ELSE
 	[VehicleData]:
 	LOAD
 		*
-	From 'QVD\VehicleData.QVD' (qvd);
+	From vDirectory & 'QVD\VehicleData.QVD' (qvd);
 End if;
 
 
@@ -3436,7 +3436,7 @@ ELSE
 	[PopulationData]:
 	LOAD
 		*
-	From 'QVD\PopulationData.QVD' (qvd);
+	From vDirectory & 'QVD\PopulationData.QVD' (qvd);
 End if;
 
 If isNull(qvdCreateTime(vDirectory & 'QVD\GDPData.QVD')) then
@@ -3449,7 +3449,7 @@ ELSE
 	[GDPData]:
 	LOAD
 		*
-	From 'QVD\GDPData.QVD' (qvd);
+	From vDirectory & 'QVD\GDPData.QVD' (qvd);
 End if;
 
 If isNull(qvdCreateTime(vDirectory & 'QVD\PersonalIncomeData.QVD')) then
@@ -3462,7 +3462,7 @@ ELSE
 	[PersonalIncomeData]:
 	LOAD
 		*
-	From 'QVD\PersonalIncomeData.QVD' (qvd);
+	From vDirectory & 'QVD\PersonalIncomeData.QVD' (qvd);
 End if;
 
 
@@ -3476,7 +3476,7 @@ ELSE
 	[VehicleRegistrationsData]:
 	LOAD
 		*
-	From 'QVD\VehicleRegistrationsData.QVD' (qvd);
+	From vDirectory & 'QVD\VehicleRegistrationsData.QVD' (qvd);
 End if; 
 
 
@@ -3490,7 +3490,7 @@ ELSE
 	[VehicleMilesTraveledData]:
 	LOAD
 		*
-	From 'QVD\VehicleMilesTraveledData.QVD' (qvd);
+	From vDirectory & 'QVD\VehicleMilesTraveledData.QVD' (qvd);
 End if;
 
 Call Closeout;
