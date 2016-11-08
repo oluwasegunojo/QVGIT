@@ -264,7 +264,7 @@
   </Layout>
   <Def>
     <Name>Person Age range</Name>
-    <Type>PRESENT</Type>
+    <Type>NOT_PRESENT</Type>
   </Def>
   <Title>
     <v>Person Age</v>
@@ -366,7 +366,6 @@
     <SortByLoadOrder>1</SortByLoadOrder>
     <SortByExpression>0</SortByExpression>
     <Expression></Expression>
-    <SortByGreyness>0</SortByGreyness>
   </SortCriteria>
   <NumberPresentation></NumberPresentation>
   <ExpandedNodes></ExpandedNodes>
