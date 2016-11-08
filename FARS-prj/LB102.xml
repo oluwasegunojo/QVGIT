@@ -264,7 +264,7 @@
   </Layout>
   <Def>
     <Name>Year</Name>
-    <Type>NOT_PRESENT</Type>
+    <Type>PRESENT</Type>
   </Def>
   <Title></Title>
   <PrintSettings>
@@ -364,6 +364,7 @@
     <SortByLoadOrder>0</SortByLoadOrder>
     <SortByExpression>0</SortByExpression>
     <Expression></Expression>
+    <SortByGreyness>0</SortByGreyness>
   </SortCriteria>
   <NumberPresentation></NumberPresentation>
   <ExpandedNodes></ExpandedNodes>

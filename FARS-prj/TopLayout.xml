@@ -2,21 +2,14 @@
   <ZoomLevel>0000000000000000</ZoomLevel>
   <WindowTitle>FARS-i</WindowTitle>
   <TabRowActiveFont>
-    <FontName>Segoe UI</FontName>
+    <FontName>Arial</FontName>
     <PointSize1000>9000</PointSize1000>
     <Underline>false</Underline>
     <Bold>true</Bold>
     <Italic>false</Italic>
     <DropShadow>false</DropShadow>
   </TabRowActiveFont>
-  <TabRowInactiveFont>
-    <FontName>Segoe UI</FontName>
-    <PointSize1000>9000</PointSize1000>
-    <Underline>false</Underline>
-    <Bold>false</Bold>
-    <Italic>false</Italic>
-    <DropShadow>false</DropShadow>
-  </TabRowInactiveFont>
+  <TabRowInactiveFont></TabRowInactiveFont>
   <TabRowBgColor>
     <Mode>COLORAREA_SOLID</Mode>
     <Luminosity>85</Luminosity>
