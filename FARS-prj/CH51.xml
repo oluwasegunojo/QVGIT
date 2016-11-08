@@ -632,7 +632,7 @@
     <ChartDimensionDataDef>
       <PseudoDef>
         <Name>Accident Light condition</Name>
-        <Type>NOT_PRESENT</Type>
+        <Type>PRESENT</Type>
       </PseudoDef>
       <Title></Title>
       <TotalString></TotalString>

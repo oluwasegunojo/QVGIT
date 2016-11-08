@@ -632,7 +632,7 @@
     <ChartDimensionDataDef>
       <PseudoDef>
         <Name>Vehicle Speed range</Name>
-        <Type>NOT_PRESENT</Type>
+        <Type>PRESENT</Type>
       </PseudoDef>
       <Title>
         <v>mph</v>

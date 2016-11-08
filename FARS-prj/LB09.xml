@@ -259,7 +259,7 @@
   </Layout>
   <Def>
     <Name>Vehicle Registered State</Name>
-    <Type>NOT_PRESENT</Type>
+    <Type>PRESENT</Type>
   </Def>
   <Title>
     <v>Registered state</v>

@@ -634,7 +634,7 @@
     <ChartDimensionDataDef>
       <PseudoDef>
         <Name>Population Age range</Name>
-        <Type>NOT_PRESENT</Type>
+        <Type>PRESENT</Type>
       </PseudoDef>
       <Title></Title>
       <TotalString></TotalString>
